@@ -1,1 +1,8 @@
-{}
+{
+  "rights": "Tous droits réservés.",
+  "builtWith": "Conçu avec Next.js, Payload et une bonne dose de verre liquide.",
+  "backToTop": "Retour en haut",
+  "linkedin": "LinkedIn",
+  "github": "GitHub",
+  "email": "E-mail"
+}

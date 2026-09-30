@@ -1,1 +1,14 @@
-{}
+{
+  "label": "Navigation principale",
+  "cta": "Discutons",
+  "dockLabel": "Navigation rapide",
+  "items": {
+    "hero": "Accueil",
+    "about": "À propos",
+    "services": "Services",
+    "stack": "Stack",
+    "projects": "Projets",
+    "journey": "Parcours",
+    "contact": "Contact"
+  }
+}

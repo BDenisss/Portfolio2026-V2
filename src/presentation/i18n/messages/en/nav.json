@@ -1,1 +1,14 @@
-{}
+{
+  "label": "Main navigation",
+  "cta": "Let’s talk",
+  "dockLabel": "Quick navigation",
+  "items": {
+    "hero": "Home",
+    "about": "About",
+    "services": "Services",
+    "stack": "Stack",
+    "projects": "Projects",
+    "journey": "Journey",
+    "contact": "Contact"
+  }
+}
