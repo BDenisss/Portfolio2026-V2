@@ -20,6 +20,7 @@ Mode sombre · témoignages et logos clients (aucune donnée réelle) · blog ·
 
 | Sujet | Décision |
 |---|---|
+| Style d'architecture | **Clean Architecture adaptée** (ports & adaptateurs) sur 5 couches + racine de composition, **clean code** contraint par ESLint et par un test d'architecture — voir §12 |
 | Architecture | **Une seule app** : Next.js 16.3 (App Router) + Payload CMS 3.90 embarqué (`/` site, `/admin` CMS) |
 | Compat vérifiée | `@payloadcms/next@3.90.2` exige `next >=16.3.3 <17`. Node `>=20.9` (Node 25 local accepté ; CI en Node 22 LTS). **TypeScript 5.x** (pas 7) tant que l'outillage n'est pas validé |
 | Base de données | **Postgres partout** : `docker-compose` en local, Neon en prod (pas de divergence SQLite/Postgres) |
@@ -34,25 +35,16 @@ Mode sombre · témoignages et logos clients (aucune donnée réelle) · blog ·
 ```
 .
 ├─ src/
-│  ├─ app/
-│  │  ├─ (payload)/            # /admin + /api (layout racine Payload)
-│  │  └─ (site)/[locale]/      # site public : layout, page.tsx, projects/[slug]/page.tsx
-│  ├─ collections/             # Users, Media, Stacks, Projects, Services, Experiences, Messages
-│  ├─ globals/                 # Site, Cinematic
-│  ├─ components/
-│  │  ├─ glass/                # <Glass>, <GlassFilters> (défs SVG)
-│  │  ├─ sections/             # Hero, About, Services, Stack, Projects, Journey, Process, Contact, Footer
-│  │  ├─ cinematic/            # HeroStage, AvatarCanvas (R3F), ScrubVideo, GlassOrb, SmoothScroll
-│  │  └─ ui/                   # Button, Chip, Eyebrow, LangSwitch, Nav, Dock
-│  ├─ lib/                     # payload client, icons (simple-icons), a11y/contrast, rate-limit, i18n
-│  ├─ messages/                # fr.json, en.json
-│  ├─ styles/                  # tokens.css (tokens), glass.css, globals.css
-│  ├─ payload.config.ts
-│  └─ seed/                    # seed idempotent depuis les CV
-├─ scripts/media/              # optimize-glb.mjs, optimize-video.mjs
-├─ docs/{superpowers,higgsfield}/
-├─ design-system/
-├─ tests/{unit,e2e}/
+│  ├─ domain/          # règles métier pures (aucun import) : entités, valeurs, fonctions pures, Result
+│  ├─ application/     # cas d'usage (classes à dépendances injectées) + ports (interfaces) + DTO
+│  ├─ infrastructure/  # adaptateurs : cms/payload (config, collections, globals, hooks, mappers, migrations), contact, icons, system, seed
+│  ├─ composition/     # racine de composition : seul endroit qui relie ports et adaptateurs (server-only)
+│  ├─ presentation/    # UI : components/{glass,ui,sections,cinematic,project,seo}, design, cinematic, lib, i18n (+ messages), styles
+│  ├─ app/             # livraison Next.js : routes minces, actions serveur, admin/API Payload ((payload))
+│  └─ proxy.ts         # redirection de langue (Next 16)
+├─ scripts/media/      # optimize-glb.mjs, optimize-video.mjs, make-fixture-glb.mjs
+├─ docs/{superpowers,higgsfield}/  · design-system/
+├─ tests/{unit,integration,e2e,support}/   # miroir des couches ; fakes en mémoire dans support/
 ├─ .github/workflows/ci.yml · Dockerfile · docker-compose.yml · .env.example · .nvmrc
 ```
 
@@ -155,3 +147,24 @@ Mobile-first, testé à **375 / 768 / 1024 / 1440**. Cibles tactiles ≥ 44px, e
 ## 11. Exécution (ordre logique)
 
 1. Scaffold (Next 16 + Payload 3 + Tailwind 4 + tooling) + Postgres docker + tokens/`<Glass>` → 2. Collections/globals + accès + hooks (TDD) → 3. Seed + i18n → 4. Sections (parallélisables : fichiers disjoints) → 5. Cinématique (hero, avatar, scrub, garde-fous) → 6. Contact → 7. Pack Higgsfield + scripts média → 8. Tests e2e + a11y + perf → 9. Revue adversariale multi-angles (a11y, perf, sécurité, responsive) → 10. Docs (README, CMS guide) + push.
+
+## 12. Architecture — Clean Architecture adaptée et clean code
+
+**Exigence de Denis** : une Clean Architecture *adaptée* (pas de cérémonie inutile) et du clean code. Adaptation : **ports & adaptateurs** (architecture hexagonale, que Denis pratique déjà côté .NET). Le cœur (domaine + application) ne connaît ni Next.js, ni Payload, ni React ; Payload est un **détail d'infrastructure** derrière le port `PortfolioRepository`.
+
+| Couche | Rôle | Peut importer | Interdit |
+|---|---|---|---|
+| `domain` | entités immuables, règles pures (statistiques de carrière, regroupement des stacks, validation du contact, politique anti-spam), `Result` | `domain` | tout le reste, y compris tout paquet npm |
+| `application` | cas d'usage (`GetHomePage`, `GetProjectPage`, `GetSiteProfile`, `ListProjectRefs`, `SubmitContactMessage`), ports (`PortfolioRepository`, `ContactMessageRepository`, `ContactNotifier`, `IpHasher`, `Clock`), DTO | `domain`, `application` | infrastructure, présentation, app, tout paquet npm |
+| `infrastructure` | adaptateurs : Payload (dépôts, mappers, collections, hooks, config), Resend, SHA-256, horloge système, simple-icons, seed | `domain`, `application`, `infrastructure`, paquets | présentation, app, composition |
+| `composition` | assemble les cas d'usage avec leurs adaptateurs (singletons paresseux) | tout sauf présentation/app | présentation, app |
+| `presentation` | composants React, design (tokens, contrastes), i18n, cinématique (détection de capacités, décision du mode du hero) | `domain`, `application` (types/DTO), paquets UI | infrastructure, composition, app |
+| `app` | routes Next.js **minces** : appellent un cas d'usage via `composition`, passent des données aux composants ; actions serveur injectées en prop | `domain`, `application`, `presentation`, `composition` | infrastructure (sauf `(payload)`) |
+
+**Conséquences de conception** : les collections/hooks Payload ne contiennent aucune règle métier (« quelles pages revalider ? » est une fonction pure de l'application) ; le formulaire de contact reçoit son action en prop (la présentation n'importe jamais `app`) ; le champ `caseStudy` est opaque pour le domaine (seul `ProjectBody` le convertit) ; les cas d'usage se testent avec des **fakes en mémoire**, sans base ni framework.
+
+**Clean code (règles vérifiées en revue et par ESLint)** : noms qui disent l'intention ; fonctions courtes à un niveau d'abstraction (≤ ~25 lignes, ESLint 50 / composants 90), ≤ 4 paramètres, complexité ≤ 10, profondeur ≤ 3, fichiers ≤ 250 lignes ; aucune valeur magique ; types `readonly` et fonctions pures dans le cœur ; erreurs attendues = valeurs (`Result`, statuts) ; aucun `catch` muet sans justification ; commentaires = *pourquoi* ; pas de `any` ni de `!` ; injection par constructeur ; tests Arrange-Act-Assert, un comportement par test.
+
+**Garde-fous automatiques** : (1) ESLint — `no-restricted-imports` par couche + seuils de complexité/taille ; (2) `tests/unit/architecture.test.ts` — analyse tous les imports de `src/` et applique la table ci-dessus en liste blanche (échoue en CI avec `fichier:ligne`).
+
+**Coût assumé** : plus de fichiers qu'un portfolio « à plat » (ports, mappers, cas d'usage) ; en échange, le CMS est remplaçable derrière un port, la logique métier se teste sans framework, et la règle de dépendance ne peut pas se dégrader sans que la CI le dise.

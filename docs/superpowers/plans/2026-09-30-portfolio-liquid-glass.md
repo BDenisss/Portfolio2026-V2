@@ -4,9 +4,9 @@
 
 **Goal :** Livrer le portfolio full-stack Liquid Glass (hero cinématique avec avatar Memoji 3D, CMS Payload pour projets/stacks, FR/EN, responsive) dans le repo `BDenisss/Portfolio2026-V2`.
 
-**Architecture :** Une seule app Next.js 16.3 (App Router) avec Payload CMS 3.90 embarqué (`/admin`, `/api`), Postgres partout, contenu localisé FR/EN. Le site lit le CMS via l'API locale Payload (Server Components, ISR + revalidation à la publication). La couche cinématique (GSAP/Lenis/R3F) est **strictement optionnelle** : chaque slot média a un repli, le contenu est visible sans JS.
+**Architecture :** Une seule app Next.js 16.3 (App Router) avec Payload CMS 3.90 embarqué (`/admin`, `/api`), Postgres partout, contenu localisé FR/EN. Le code suit une **Clean Architecture adaptée** (domain / application / infrastructure / composition / presentation / app — voir la section « Architecture ») : le site lit le contenu via un port `PortfolioRepository` dont Payload (API locale) n'est qu'un adaptateur (Server Components, ISR + revalidation à la publication). La couche cinématique (GSAP/Lenis/R3F) est **strictement optionnelle** : chaque slot média a un repli, le contenu est visible sans JS.
 
-**Tech Stack :** Next.js 16.3.7 · React 19.3 · Payload 3.90.2 (+ db-postgres, richtext-lexical, storage-vercel-blob) · Tailwind CSS 4.3 · next-intl 4 · GSAP 3.15 + Lenis · three 0.186 + @react-three/fiber 9 + drei 10 · simple-icons · lucide-react · zod 4 · resend · Vitest 5 · Playwright + axe · pnpm 10 · TypeScript 5.x.
+**Tech Stack :** Next.js 16.3.7 · React 19.3 · Payload 3.90.2 (+ db-postgres, richtext-lexical, storage-vercel-blob) · Tailwind CSS 4.3 · next-intl 4 · GSAP 3.15 + Lenis · three 0.186 + @react-three/fiber 9 + drei 10 · simple-icons · lucide-react · resend · Vitest 5 · Playwright + axe · pnpm 10 · TypeScript 5.x.
 
 **Spec :** [`docs/superpowers/specs/2026-09-30-portfolio-liquid-glass-design.md`](../specs/2026-09-30-portfolio-liquid-glass-design.md) · **Design system :** [`design-system/portfolio-denis-bucspun/MASTER.md`](../../../design-system/portfolio-denis-bucspun/MASTER.md) — les exécutants lisent les **deux** avant leur tâche.
 
@@ -24,24 +24,78 @@ Chaque tâche les inclut implicitement.
 - **Contenu :** uniquement des faits issus des CV FR/IA ; **pas de témoignages, pas de logos clients inventés** ; téléphone **jamais** commité (`showPhone: false` par défaut, valeur seed via `SEED_PHONE` seulement) ; `img/` jamais commité.
 - **Médias :** GLB compressé en **meshopt** (pas Draco : drei charge Draco depuis un CDN, meshopt est embarqué) ; budgets : poster ≤ 150 Ko, vidéo desktop ≤ 4 Mo, mobile ≤ 2 Mo, GLB ≤ 3 Mo ; pas de fetch réseau tiers au runtime (pas de preset `Environment` drei distant).
 - **Accès Payload :** l'API locale **ignore** l'access control par défaut → toute lecture côté site passe `overrideAccess: false` **et** `draft: false`.
-- **Qualité :** TDD pour toute logique pure ; `pnpm typecheck && pnpm lint && pnpm test` verts avant de rendre la main ; a11y/contrastes/breakpoints selon la checklist de `MASTER.md`.
+- **Architecture & clean code :** la section « Architecture » ci-dessous est **contraignante** (couches, règle de dépendance, nommage du domaine, règles de clean code) et **prime sur tout chemin ou nom contraire**. Une violation de la règle de dépendance ou un dépassement des seuils ESLint est un défaut **Important** en revue.
+- **Qualité :** TDD pour toute logique pure ; `pnpm typecheck && pnpm lint && pnpm test` verts avant de rendre la main (`pnpm lint` applique les règles de couches et de clean code, `tests/unit/architecture.test.ts` applique la règle de dépendance) ; a11y/contrastes/breakpoints selon la checklist de `MASTER.md`.
+
+## Architecture — Clean Architecture adaptée (CONTRAIGNANTE)
+
+Denis exige une **Clean Architecture adaptée** et du **clean code**. Adaptation retenue : ports & adaptateurs (hexagonale) sur 5 couches, **sans sur-ingénierie** — les entités sont des types immuables + fonctions pures ; les cas d'usage sont de petites classes qui reçoivent leurs ports par constructeur ; Payload, Next.js, Resend, simple-icons, GSAP, three sont des **détails** d'infrastructure ou de présentation.
+
+```
+src/
+├─ domain/          # règles métier PURES. Aucun import (ni framework, ni npm, ni node:)
+│  ├─ index.ts      # barrel du vocabulaire métier
+│  ├─ locale.ts  media.ts  shared/{result,slug}.ts
+│  ├─ stack/  project/  service/  experience/  career/  site/  contact/
+├─ application/     # cas d'usage + ports. Dépend du domaine seulement
+│  ├─ ports/        # interfaces : PortfolioRepository, ContactMessageRepository, ContactNotifier, IpHasher, Clock
+│  ├─ portfolio/    # GetSiteProfile, GetHomePage, GetProjectPage, ListProjectRefs (+ DTO HomePage, ProjectPage)
+│  ├─ contact/      # SubmitContactMessage
+│  └─ revalidation/ # pathsToRevalidate (pur)
+├─ infrastructure/  # adaptateurs qui IMPLÉMENTENT les ports ; frameworks autorisés ici
+│  ├─ cms/payload/  # payload.config.ts, access.ts, collections/, globals/, hooks/, mappers/, migrations/, payload-types.ts,
+│  │                # payload-portfolio-repository.ts, payload-contact-message-repository.ts
+│  ├─ contact/  icons/  system/  seed/
+├─ composition/     # RACINE DE COMPOSITION : seul endroit qui relie ports ↔ adaptateurs (server-only)
+├─ presentation/    # UI : components/{glass,ui,sections,cinematic,project,seo}, design/, cinematic/, lib/, i18n/(+messages), styles/
+└─ app/             # livraison Next.js : routes MINCES + actions serveur + admin/API Payload ; src/proxy.ts
+```
+
+**Règle de dépendance** (les flèches ne pointent que vers l'intérieur) :
+
+| Couche | Peut importer | Interdit |
+|---|---|---|
+| `domain` | `domain` uniquement (aucun paquet npm, aucun `node:`) | tout le reste |
+| `application` | `domain`, `application` (aucun paquet npm) | `infrastructure`, `composition`, `presentation`, `app`, frameworks |
+| `infrastructure` | `domain`, `application`, `infrastructure`, paquets npm | `presentation`, `app`, `composition` |
+| `composition` | `domain`, `application`, `infrastructure`, `composition` | `presentation`, `app` |
+| `presentation` | `domain`, `application` (types/DTO), `presentation`, paquets npm UI | `infrastructure`, `composition`, `app` |
+| `app` | `domain`, `application`, `presentation`, `composition`, `app` | `infrastructure` — **sauf** `src/app/(payload)/**` (admin/API Payload, importe `@payload-config`) |
+
+Conséquences pratiques : une page ou une action serveur (`app`) appelle **un cas d'usage** via `@/composition` puis passe des données (types du domaine/DTO) aux composants ; un composant ne connaît ni Payload ni la base ; une action serveur est **injectée en prop** dans les composants clients (`submitAction`) ; les collections/hooks Payload ne contiennent **aucune logique métier** (ils appellent des fonctions pures du domaine/de l'application) ; les mappers Payload → domaine vivent dans `infrastructure/cms/payload/mappers/` (types Payload importés avec le suffixe `Doc` : `Project as ProjectDoc`).
+
+**Nommage du domaine (contrat)** : `MediaAsset`, `Stack`, `StackCategory`, `StackIcon`, `Project`, `ProjectSummary`, `ProjectRef`, `Service`, `ServiceIconName`, `Experience`, `SiteProfile`, `LabeledValue`, `CinematicMedia`, `VideoPair`, `CareerStats`, `Locale`, `Result`. DTO d'application : `HomePage`, `ProjectPage`. Ports : `PortfolioRepository`, `ContactMessageRepository`, `ContactNotifier`, `IpHasher`, `Clock`. Cas d'usage : `GetSiteProfile`, `GetHomePage`, `GetProjectPage`, `ListProjectRefs`, `SubmitContactMessage` (méthode unique `execute`).
+
+### Clean code (règles contraignantes — vérifiées en revue ET par ESLint)
+
+1. **Noms** qui disent l'intention (fonctions = verbes, types = noms, booléens `is/has/can`) ; pas d'abréviations opaques ; un fichier = un concept ; composants React PascalCase (un par fichier), le reste en kebab-case.
+2. **Petites fonctions** à un seul niveau d'abstraction : ≤ ~25 lignes (ESLint : 50 ; composants `.tsx` : 90), ≤ 4 paramètres (au-delà : un objet nommé), complexité ≤ 10, profondeur ≤ 3, retours anticipés, pas de `else` après `return`, pas de ternaires imbriqués. Fichiers ≤ 250 lignes.
+3. **Aucun nombre ni chaîne magique** : constantes nommées (`MIN_FILL_MS`, `RATE_MAX`), vocabulaires en `as const`.
+4. **Immutabilité** : types `readonly`, pas de mutation d'arguments, `const` par défaut ; fonctions **pures** dans `domain` et `application`.
+5. **Erreurs attendues = valeurs** (`Result<T, E>` du domaine, statuts discriminés) ; exceptions réservées à l'inattendu ; **aucun `catch` vide** sans commentaire expliquant *pourquoi* l'erreur est ignorée.
+6. **Commentaires = pourquoi**, jamais quoi ; pas de code commenté ; pas de `TODO`.
+7. **Types stricts** : pas de `any`, pas de `!` (non-null) hors tests, types de retour explicites sur les fonctions exportées de `domain`/`application`/`infrastructure`.
+8. **SOLID / DIP** : les cas d'usage reçoivent leurs dépendances (ports) par **constructeur** ; aucun singleton global hors `composition/` ; les adaptateurs dépendent des ports, jamais l'inverse.
+9. **Tests propres** : Arrange-Act-Assert, un comportement par test, nom = comportement, **fakes en mémoire** pour les ports (`tests/support/`) plutôt que des mocks partout, aucune logique conditionnelle dans un test. Miroir des couches : `tests/unit/{domain,application,infrastructure,presentation,app}/…`.
+
+**Garde-fous automatiques (créés en T1, exécutés par `pnpm lint` et `pnpm test`) :** (a) ESLint — `no-restricted-imports` par couche + `complexity`, `max-depth`, `max-params`, `max-lines`, `max-lines-per-function`, `no-else-return`, `no-nested-ternary`, `@typescript-eslint/no-non-null-assertion` ; (b) `tests/unit/architecture.test.ts` — analyse tous les imports de `src/**` et applique la table ci-dessus en **liste blanche** (échoue avec `fichier:ligne — importe X, interdit pour la couche Y`).
 
 ## Contrats partagés (noms exacts — ne pas dévier)
 
 **Routes & ancres :** `/[locale]` (home), `/[locale]/projects/[slug]`. Sections : `#hero` `#about` `#services` `#stack` `#projects` `#journey` `#process` `#contact`. Nav desktop : about, services, stack, projects, journey, contact. Dock mobile (5) : hero, about, services, projects, contact.
-**i18n UI :** `next-intl`, un fichier par namespace : `src/messages/{fr,en}/<namespace>.json` ; namespaces : `common` `nav` `hero` `about` `services` `stack` `projects` `journey` `process` `contact` `footer` `errors`. Chaque tâche crée **ses** namespaces (fr + en) — jamais ceux des autres.
+**i18n UI :** `next-intl`, un fichier par namespace : `src/presentation/i18n/messages/{fr,en}/<namespace>.json` ; namespaces : `common` `nav` `hero` `about` `services` `stack` `projects` `journey` `process` `contact` `footer` `errors`. Chaque tâche crée **ses** namespaces (fr + en) — jamais ceux des autres.
 **Scripts `package.json` (fixés en T1) :** `dev` `build` `build:prod` `start` `typecheck` `lint` `format` `test` `test:watch` `test:int` `e2e` `e2e:install` `db:up` `db:down` `payload` `generate:types` `generate:importmap` `migrate` `migrate:create` `seed` `media:optimize:glb` `media:optimize:video` `media:fixture`.
-**Alias TS :** `@/*` → `src/*` ; `@payload-config` → `src/payload.config.ts`.
+**Alias TS :** `@/*` → `src/*` ; `@payload-config` → `src/infrastructure/cms/payload/payload.config.ts`.
 **Data-testid :** `nav`, `dock`, `lang-switch`, `hero-frame`, `hero-chip`, `stat-card`, `service-card`, `stack-tile`, `project-card`, `project-filter`, `timeline-item`, `process-step`, `contact-form`, `contact-status`. **Attributs de test du hero :** `data-hero-mode` (`avatar3d|video|poster|orb`) et `data-hero-ready` (`true|false`) sur `[data-testid="hero-frame"]`.
 
 ## Vagues d'exécution
 
 | Vague | Tâches (parallèles entre elles) | Porte de sortie |
 |---|---|---|
-| 0 | **T1** scaffold | `pnpm install && pnpm typecheck && pnpm test` |
-| 1 | **T2** fondations design ∥ **T3** collections A, **puis T4** collections B + hooks (T4 importe `@/access`, `slugify` et `icon-names` de T3) | typecheck + test |
+| 0 | **T1** scaffold + garde-fous d'architecture (ESLint + test d'architecture) | `pnpm install && pnpm typecheck && pnpm test` |
+| 1 | **T2** fondations design ∥ **T3** collections A, **puis T4** collections B + hooks (T4 importe l'access, `slugify`, `service-icon` et le barrel `@/domain` de T3) | typecheck + test |
 | 2 | **T5** globals + config + migration · **T6** i18n + layout | typecheck + test + `pnpm build` |
-| 3 | **T7** couche contenu · **T8** seed | typecheck + test + `pnpm seed` |
+| 3 | **T7** domaine + cas d'usage + adaptateur Payload + racine de composition · **T8** seed | typecheck + test + `pnpm seed` |
 | 4a | **T9** primitives UI + nav + page shell | build + capture 4 viewports |
 | 4b | **T10** moteur cinématique → **T11** section Hero · **T12** About+Services · **T13** Stack+Projets · **T14** Parcours+Méthode · **T15** scripts média + pack Higgsfield (utilise la fixture de T10) · **T16** Contact | typecheck + test + e2e de section |
 | 5 | **T17** e2e/a11y/responsive · **T18** Docker/CI/docs | tout vert |
@@ -52,11 +106,11 @@ Chaque tâche les inclut implicitement.
 ## Task 1 : Scaffold, outillage, base Postgres
 
 **Files :**
-- Create : `package.json`, `pnpm-workspace.yaml` (uniquement si nécessaire), `tsconfig.json`, `next.config.ts`, `postcss.config.mjs`, `tests/stubs/server-only.ts`, `eslint.config.mjs`, `.prettierrc.json`, `.prettierignore`, `.gitattributes`, `.nvmrc`, `.env.example`, `docker-compose.yml`, `vitest.config.ts`, `vitest.int.config.ts`, `playwright.config.ts`, `tests/setup.ts`, `tests/unit/smoke.test.ts`, `src/lib/cn.ts`, `src/app/(payload)/**` (copié du gabarit officiel), `src/payload.config.ts` (minimal, remplacé en T5), `.github/workflows/ci.yml`
-- Test : `tests/unit/smoke.test.ts`
+- Create : `package.json`, `pnpm-workspace.yaml` (uniquement si nécessaire), `tsconfig.json`, `next.config.ts`, `postcss.config.mjs`, `tests/stubs/server-only.ts`, `eslint.config.mjs`, `.prettierrc.json`, `.prettierignore`, `.gitattributes`, `.nvmrc`, `.env.example`, `docker-compose.yml`, `vitest.config.ts`, `vitest.int.config.ts`, `playwright.config.ts`, `tests/setup.ts`, `tests/unit/presentation/cn.test.ts`, `src/presentation/lib/cn.ts`, `src/domain/index.ts`, `src/domain/locale.ts`, `src/domain/shared/result.ts`, `tests/support/architecture.ts`, `tests/unit/architecture.test.ts`, `tests/unit/domain/locale.test.ts`, `tests/unit/domain/result.test.ts`, `src/app/(payload)/**` (copié du gabarit officiel), `src/infrastructure/cms/payload/payload.config.ts` (minimal, remplacé en T5), `.github/workflows/ci.yml`
+- Test : `tests/unit/presentation/cn.test.ts`, `tests/unit/architecture.test.ts`, `tests/unit/domain/{locale,result}.test.ts`
 
 **Interfaces :**
-- Produces : alias `@/*`, `@payload-config` ; scripts listés ci-dessus ; `cn(...inputs: ClassValue[]): string` dans `src/lib/cn.ts` ; groupes de routes `(payload)` (Payload) et `(site)` (créé en T6).
+- Produces : `LOCALES`, `type Locale`, `DEFAULT_LOCALE`, `isLocale(value: unknown): value is Locale`, `type Result<T, E>`, `ok(value)`, `err(error)` dans `@/domain` ; `tests/support/architecture.ts` (`findViolations`, `violationsInSource`, `importsOf`, `SRC`) ; règles ESLint de couches et de clean code ; alias `@/*`, `@payload-config` ; scripts listés ci-dessus ; `cn(...inputs: ClassValue[]): string` dans `src/presentation/lib/cn.ts` ; groupes de routes `(payload)` (Payload) et `(site)` (créé en T6).
 
 - [ ] **Step 1 : Générer un gabarit de référence Payload dans le scratchpad**
 
@@ -98,7 +152,7 @@ Relever dans `payload-ref/src/app/(payload)/` : `layout.tsx`, `custom.scss`, `ad
     "generate:importmap": "cross-env NODE_OPTIONS=--no-deprecation payload generate:importmap",
     "migrate": "cross-env NODE_OPTIONS=--no-deprecation payload migrate",
     "migrate:create": "cross-env NODE_OPTIONS=--no-deprecation payload migrate:create",
-    "seed": "cross-env NODE_OPTIONS=--no-deprecation payload run src/seed/run.ts",
+    "seed": "cross-env NODE_OPTIONS=--no-deprecation payload run src/infrastructure/seed/run.ts",
     "media:optimize:glb": "node scripts/media/optimize-glb.mjs",
     "media:optimize:video": "node scripts/media/optimize-video.mjs",
     "media:fixture": "node scripts/media/make-fixture-glb.mjs"
@@ -114,7 +168,7 @@ pnpm add next@16.3.7 react@^19.3.0 react-dom@^19.3.0 graphql@^16.8.1 sharp \
   payload@3.90.2 @payloadcms/next@3.90.2 @payloadcms/db-postgres@3.90.2 @payloadcms/richtext-lexical@3.90.2 \
   @payloadcms/storage-vercel-blob@3.90.2 @payloadcms/translations@3.90.2 @payloadcms/ui@3.90.2 \
   next-intl gsap @gsap/react lenis three @react-three/fiber @react-three/drei \
-  lucide-react simple-icons zod resend clsx server-only
+  lucide-react simple-icons resend clsx server-only
 pnpm add -D typescript@^5.9.3 @types/node @types/react @types/react-dom @types/three \
   tailwindcss @tailwindcss/postcss postcss eslint@^9 eslint-config-next@16.3.7 prettier prettier-plugin-tailwindcss \
   vitest @vitejs/plugin-react vite-tsconfig-paths jsdom @testing-library/react @testing-library/jest-dom \
@@ -133,7 +187,7 @@ pnpm add -D typescript@^5.9.3 @types/node @types/react @types/react-dom @types/t
     "resolveJsonModule": true, "isolatedModules": true, "jsx": "react-jsx", "incremental": true,
     "noUncheckedIndexedAccess": true,
     "plugins": [{ "name": "next" }],
-    "paths": { "@/*": ["./src/*"], "@payload-config": ["./src/payload.config.ts"] }
+    "paths": { "@/*": ["./src/*"], "@payload-config": ["./src/infrastructure/cms/payload/payload.config.ts"] }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
   "exclude": ["node_modules", ".next", "tests/e2e/**/*.d.ts"]
@@ -146,7 +200,7 @@ import { withPayload } from '@payloadcms/next/withPayload'
 import createNextIntlPlugin from 'next-intl/plugin'
 import type { NextConfig } from 'next'
 
-const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts')
+const withNextIntl = createNextIntlPlugin('./src/presentation/i18n/request.ts')
 
 const securityHeaders = [
   { key: 'X-Content-Type-Options', value: 'nosniff' },
@@ -168,23 +222,60 @@ const nextConfig: NextConfig = {
 
 export default withPayload(withNextIntl(nextConfig), { devBundleServerPackages: false })
 ```
-> `src/i18n/request.ts` est créé en T6 ; d'ici là `next build` n'est pas requis. Si `withNextIntl` casse T1, le retirer temporairement et le remettre en T6 (le noter).
+> `src/presentation/i18n/request.ts` est créé en T6 ; d'ici là `next build` n'est pas requis. Si `withNextIntl` casse T1, le retirer temporairement et le remettre en T6 (le noter).
 
-`eslint.config.mjs` (flat, sans `next lint` qui n'existe plus en Next 16) :
+`eslint.config.mjs` (flat, sans `next lint` qui n'existe plus en Next 16) — **règles de couches + clean code** :
 ```js
 import { defineConfig, globalIgnores } from 'eslint/config'
-import next from 'eslint-config-next'
 import coreWebVitals from 'eslint-config-next/core-web-vitals'
 import typescript from 'eslint-config-next/typescript'
+
+/** Règle de dépendance : ce que chaque couche n'a PAS le droit d'importer (voir « Architecture » dans le plan). */
+const FORBIDDEN_IMPORTS = {
+  domain: ['@/application/**', '@/infrastructure/**', '@/composition/**', '@/presentation/**', '@/app/**'],
+  application: ['@/infrastructure/**', '@/composition/**', '@/presentation/**', '@/app/**'],
+  infrastructure: ['@/composition/**', '@/presentation/**', '@/app/**'],
+  composition: ['@/presentation/**', '@/app/**'],
+  presentation: ['@/infrastructure/**', '@/composition/**', '@/app/**'],
+  app: ['@/infrastructure/**'],
+}
+
+const layerBoundary = (layer) => ({
+  files: [`src/${layer}/**/*.{ts,tsx}`],
+  rules: {
+    'no-restricted-imports': ['error', { patterns: [{ group: FORBIDDEN_IMPORTS[layer], message: `La couche « ${layer} » ne doit pas importer cette couche (règle de dépendance).` }] }],
+  },
+})
+
+const cleanCode = {
+  files: ['src/**/*.{ts,tsx}'],
+  rules: {
+    complexity: ['error', 10],
+    'max-depth': ['error', 3],
+    'max-params': ['error', 4],
+    'max-lines': ['error', { max: 250, skipBlankLines: true, skipComments: true }],
+    'max-lines-per-function': ['error', { max: 50, skipBlankLines: true, skipComments: true }],
+    'no-else-return': 'error',
+    'no-nested-ternary': 'error',
+    'no-console': ['error', { allow: ['warn', 'error'] }],
+    '@typescript-eslint/no-non-null-assertion': 'error',
+    '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', ignoreRestSiblings: true }],
+  },
+}
 
 export default defineConfig([
   ...coreWebVitals,
   ...typescript,
-  globalIgnores(['.next/**', 'node_modules/**', 'src/payload-types.ts', 'src/app/(payload)/**', 'public/**', 'playwright-report/**']),
-  { rules: { '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }] } },
+  globalIgnores(['.next/**', 'node_modules/**', 'src/infrastructure/cms/payload/payload-types.ts', 'src/infrastructure/cms/payload/migrations/**', 'src/app/(payload)/**', 'public/**', 'playwright-report/**']),
+  cleanCode,
+  { files: ['src/presentation/**/*.tsx', 'src/app/**/*.tsx'], rules: { 'max-lines-per-function': ['error', { max: 90, skipBlankLines: true, skipComments: true }] } }, // JSX
+  { files: ['src/domain/**/*.ts', 'src/application/**/*.ts', 'src/infrastructure/**/*.ts'], rules: { '@typescript-eslint/explicit-module-boundary-types': 'error' } },
+  { files: ['src/infrastructure/cms/payload/collections/**', 'src/infrastructure/cms/payload/globals/**', 'src/infrastructure/seed/**'], rules: { 'max-lines': 'off', 'max-lines-per-function': 'off' } }, // configuration déclarative / données
+  { files: ['src/infrastructure/seed/**', 'scripts/**', 'tests/**'], rules: { 'no-console': 'off', '@typescript-eslint/no-non-null-assertion': 'off', 'max-params': 'off' } },
+  ...['domain', 'application', 'infrastructure', 'composition', 'presentation', 'app'].map(layerBoundary),
 ])
 ```
-> Vérifier les noms d'export réels d'`eslint-config-next@16.3.7` (`node -e "console.log(Object.keys(require('eslint-config-next/package.json').exports))"`) et adapter les imports ; supprimer l'import `next` inutilisé.
+> Vérifier les noms d'export réels d'`eslint-config-next@16.3.7` (`node -e "console.log(Object.keys(require('eslint-config-next/package.json').exports))"`) et adapter les imports ; ne garder **aucun** import inutilisé. Les seuils ci-dessus sont **contraignants** : on ne les relève pas pour faire passer du code, on découpe le code.
 
 `postcss.config.mjs` (Tailwind v4 sous Next — sans lui, aucune classe n'est générée) :
 ```js
@@ -192,7 +283,7 @@ export default { plugins: { '@tailwindcss/postcss': {} } }
 ```
 `tests/stubs/server-only.ts` : `export {}` (le vrai paquet `server-only` lève une erreur hors bundle serveur Next ; les tests unitaires/d'intégration importent des modules qui le déclarent).
 
-`.prettierrc.json` : `{ "semi": false, "singleQuote": true, "trailingComma": "all", "printWidth": 100, "plugins": ["prettier-plugin-tailwindcss"] }` · `.prettierignore` : `.next`, `node_modules`, `pnpm-lock.yaml`, `src/payload-types.ts`, `src/migrations`, `design-system`, `docs`.
+`.prettierrc.json` : `{ "semi": false, "singleQuote": true, "trailingComma": "all", "printWidth": 100, "plugins": ["prettier-plugin-tailwindcss"] }` · `.prettierignore` : `.next`, `node_modules`, `pnpm-lock.yaml`, `src/infrastructure/cms/payload/payload-types.ts`, `src/infrastructure/cms/payload/migrations`, `design-system`, `docs`.
 `.gitattributes` : `* text=auto eol=lf` + `*.glb binary` `*.mp4 binary` `*.webm binary` `*.webp binary` `*.png binary` `*.jpg binary` `*.pdf binary`.
 `.nvmrc` : `22`.
 
@@ -274,7 +365,7 @@ export default defineConfig({
   ],
 })
 ```
-`src/lib/cn.ts` :
+`src/presentation/lib/cn.ts` :
 ```ts
 import { clsx, type ClassValue } from 'clsx'
 
@@ -282,15 +373,15 @@ export function cn(...inputs: ClassValue[]): string {
   return clsx(inputs)
 }
 ```
-`src/payload.config.ts` (minimal, remplacé en T5) : `buildConfig` avec `collections: []`, `secret`, `db: postgresAdapter({ pool: { connectionString: process.env.DATABASE_URI } })`, `sharp`, `editor: lexicalEditor()`.
+`src/infrastructure/cms/payload/payload.config.ts` (minimal, remplacé en T5) : `buildConfig` avec `collections: []`, `secret`, `db: postgresAdapter({ pool: { connectionString: process.env.DATABASE_URI } })`, `sharp`, `editor: lexicalEditor()`.
 `.github/workflows/ci.yml` : voir T18 (créé là ; en T1 seulement un fichier minimal `on: push` qui échoue proprement n'est **pas** requis — ne pas le créer en T1).
 
 - [ ] **Step 4 : Test de fumée qui échoue puis passe**
 
-`tests/unit/smoke.test.ts` :
+`tests/unit/presentation/cn.test.ts` :
 ```ts
 import { describe, expect, it } from 'vitest'
-import { cn } from '@/lib/cn'
+import { cn } from '@/presentation/lib/cn'
 
 describe('cn', () => {
   it('joint les classes et ignore les valeurs falsy', () => {
@@ -298,16 +389,226 @@ describe('cn', () => {
   })
 })
 ```
-Run : `pnpm test` → d'abord **FAIL** (alias/`cn` absent si Step 3 pas fait), puis **PASS** une fois `src/lib/cn.ts` et `vitest.config.ts` en place.
+Run : `pnpm test` → d'abord **FAIL** (alias/`cn` absent si Step 3 pas fait), puis **PASS** une fois `src/presentation/lib/cn.ts` et `vitest.config.ts` en place.
 
-- [ ] **Step 5 : Vérifier l'outillage**
+- [ ] **Step 5 : Squelette du domaine et garde-fous d'architecture (TDD)**
+
+Le domaine démarre avec deux briques **sans aucun import** ; le test d'architecture verrouille la règle de dépendance dès maintenant, avant que du code métier existe.
+
+`tests/unit/domain/locale.test.ts` :
+```ts
+import { describe, expect, it } from 'vitest'
+import { DEFAULT_LOCALE, isLocale, LOCALES } from '@/domain'
+
+describe('locale', () => {
+  it('le français est la locale par défaut et fait partie des locales supportées', () => {
+    expect(DEFAULT_LOCALE).toBe('fr')
+    expect(LOCALES).toContain(DEFAULT_LOCALE)
+  })
+
+  it('isLocale accepte fr et en, rejette le reste', () => {
+    expect(isLocale('fr')).toBe(true)
+    expect(isLocale('en')).toBe(true)
+    expect(isLocale('de')).toBe(false)
+    expect(isLocale(undefined)).toBe(false)
+  })
+})
+```
+`tests/unit/domain/result.test.ts` : `ok(1)` = `{ ok: true, value: 1 }` ; `err('x')` = `{ ok: false, error: 'x' }` ; un `Result` se discrimine sur `ok` (le test lit `.value` seulement après `if (result.ok)`).
+Run → **FAIL**. Implémenter :
+`src/domain/locale.ts` :
+```ts
+export const LOCALES = ['fr', 'en'] as const
+export type Locale = (typeof LOCALES)[number]
+export const DEFAULT_LOCALE: Locale = 'fr'
+
+export function isLocale(value: unknown): value is Locale {
+  return typeof value === 'string' && (LOCALES as readonly string[]).includes(value)
+}
+```
+`src/domain/shared/result.ts` :
+```ts
+export type Result<T, E> = { readonly ok: true; readonly value: T } | { readonly ok: false; readonly error: E }
+
+export const ok = <T>(value: T): Result<T, never> => ({ ok: true, value })
+export const err = <E>(error: E): Result<never, E> => ({ ok: false, error })
+```
+`src/domain/index.ts` (barrel du vocabulaire métier ; les tâches suivantes y ajoutent leurs exports) : `export * from './locale'` et `export * from './shared/result'`.
+
+`tests/support/architecture.ts` — **l'analyseur d'imports et la règle de dépendance** :
+```ts
+import { readdirSync, readFileSync, statSync } from 'node:fs'
+import { dirname, join, relative, resolve, sep } from 'node:path'
+
+export type Layer = 'domain' | 'application' | 'infrastructure' | 'composition' | 'presentation' | 'app'
+
+export const SRC = resolve('src')
+const LAYERS: readonly Layer[] = ['domain', 'application', 'infrastructure', 'composition', 'presentation', 'app']
+
+/** Règle de dépendance : pour chaque couche, les couches qu'elle a le droit d'importer. */
+export const ALLOWED_LAYERS: Readonly<Record<Layer, readonly Layer[]>> = {
+  domain: ['domain'],
+  application: ['domain', 'application'],
+  infrastructure: ['domain', 'application', 'infrastructure'],
+  composition: ['domain', 'application', 'infrastructure', 'composition'],
+  presentation: ['domain', 'application', 'presentation'],
+  app: ['domain', 'application', 'presentation', 'composition', 'app'],
+}
+
+/** Couches qui n'importent AUCUN paquet npm ni module `node:`. */
+const PURE_LAYERS: readonly Layer[] = ['domain', 'application']
+
+/** Admin et API Payload : code de livraison copié du gabarit officiel, hors règle. */
+const IGNORED_DIRECTORY = '(payload)'
+
+const IMPORT_PATTERN =
+  /(?:^|\n)[ \t]*(?:import|export)\s+(?:type\s+)?(?:[\w*${}\s,]+?\s+from\s+)?['"]([^'"]+)['"]|import\(\s*['"]([^'"]+)['"]\s*\)/g
+
+export type SourceImport = { readonly specifier: string; readonly line: number }
+
+export function importsOf(source: string): SourceImport[] {
+  return [...source.matchAll(IMPORT_PATTERN)].flatMap((match) => {
+    const specifier = match[1] ?? match[2]
+    if (!specifier) return []
+    const offset = (match.index ?? 0) + match[0].lastIndexOf(specifier)
+    return [{ specifier, line: source.slice(0, offset).split('\n').length }]
+  })
+}
+
+export function layerOf(absolutePath: string): Layer | null {
+  const [top] = relative(SRC, absolutePath).split(sep)
+  if (top === 'proxy.ts') return 'app'
+  return LAYERS.find((layer) => layer === top) ?? null
+}
+
+type Target = { readonly kind: 'layer'; readonly layer: Layer | null } | { readonly kind: 'external'; readonly name: string }
+
+function packageName(specifier: string): string {
+  if (specifier.startsWith('node:')) return specifier
+  const parts = specifier.split('/')
+  return specifier.startsWith('@') ? parts.slice(0, 2).join('/') : (parts[0] ?? specifier)
+}
+
+export function resolveSpecifier(fromFile: string, specifier: string): Target {
+  if (specifier.startsWith('@payload-config')) return { kind: 'layer', layer: 'infrastructure' }
+  if (specifier.startsWith('@/')) return { kind: 'layer', layer: layerOf(join(SRC, specifier.slice(2))) }
+  if (specifier.startsWith('.')) return { kind: 'layer', layer: layerOf(resolve(dirname(fromFile), specifier)) }
+  return { kind: 'external', name: packageName(specifier) }
+}
+
+function forbiddenReason(from: Layer, target: Target, specifier: string): string | null {
+  if (target.kind === 'external') {
+    return PURE_LAYERS.includes(from) ? `la couche « ${from} » ne doit importer aucun paquet (importe « ${specifier} »)` : null
+  }
+  if (target.layer === null || ALLOWED_LAYERS[from].includes(target.layer)) return null
+  return `la couche « ${from} » ne doit pas dépendre de « ${target.layer} » (importe « ${specifier} »)`
+}
+
+export function violationsInSource(file: string, source: string): string[] {
+  const from = layerOf(file)
+  const where = relative(process.cwd(), file).split(sep).join('/')
+  if (from === null) return [`${where}: dossier hors des couches connues (${LAYERS.join(', ')})`]
+  return importsOf(source).flatMap(({ specifier, line }) => {
+    const reason = forbiddenReason(from, resolveSpecifier(file, specifier), specifier)
+    return reason ? [`${where}:${line} — ${reason}`] : []
+  })
+}
+
+export function sourceFiles(directory: string = SRC): string[] {
+  return readdirSync(directory).flatMap((name) => {
+    const path = join(directory, name)
+    if (statSync(path).isDirectory()) return name === IGNORED_DIRECTORY ? [] : sourceFiles(path)
+    return /\.tsx?$/.test(name) && !name.endsWith('.d.ts') ? [path] : []
+  })
+}
+
+export function findViolations(files: readonly string[] = sourceFiles()): string[] {
+  return files.flatMap((file) => violationsInSource(file, readFileSync(file, 'utf8')))
+}
+```
+`tests/unit/architecture.test.ts` :
+```ts
+import { join } from 'node:path'
+import { describe, expect, it } from 'vitest'
+import { findViolations, importsOf, SRC, violationsInSource } from '../support/architecture'
+
+const inLayer = (layer: string, source: string): string[] => violationsInSource(join(SRC, layer, 'file.ts'), source)
+
+describe('règle de dépendance (Clean Architecture)', () => {
+  it('aucune couche de src/ n’importe ce qui lui est interdit', () => {
+    expect(findViolations()).toEqual([])
+  })
+})
+
+describe('analyse des imports', () => {
+  it('lit import, import type, export … from, import dynamique et import à effet de bord', () => {
+    const source = [
+      "import { a } from '@/domain'",
+      "import type { B } from './b'",
+      "export * from '../c'",
+      "export { d } from 'pkg'",
+      "const e = await import('lazy')",
+      "import 'side-effect'",
+    ].join('\n')
+    expect(importsOf(source).map((i) => i.specifier)).toEqual(['@/domain', './b', '../c', 'pkg', 'lazy', 'side-effect'])
+  })
+
+  it('lit un import multi-lignes et donne le bon numéro de ligne', () => {
+    const source = "const x = 1\nimport {\n  a,\n  b,\n} from '@/domain'\n"
+    expect(importsOf(source)).toEqual([{ specifier: '@/domain', line: 5 }])
+  })
+
+  it('ignore ce qui ressemble à un import sans en être un', () => {
+    expect(importsOf("export const name = 'from'\nconst message = \"import x from 'y'\"")).toEqual([])
+  })
+})
+
+describe('détection des violations', () => {
+  it('interdit au domaine d’importer l’application (alias comme chemin relatif)', () => {
+    expect(inLayer('domain', "import { x } from '@/application/y'")).toHaveLength(1)
+    expect(inLayer('domain', "import { x } from '../application/y'")).toHaveLength(1)
+  })
+
+  it('interdit au domaine et à l’application d’importer un paquet npm ou node:', () => {
+    expect(inLayer('domain', "import { z } from 'zod'")).toHaveLength(1)
+    expect(inLayer('application', "import { createHash } from 'node:crypto'")).toHaveLength(1)
+  })
+
+  it('interdit à la présentation d’importer l’infrastructure', () => {
+    expect(inLayer('presentation', "import { repo } from '@/infrastructure/cms/payload/repo'")).toHaveLength(1)
+  })
+
+  it('autorise l’infrastructure à importer l’application, le domaine et des paquets', () => {
+    const source = "import type { Port } from '@/application/ports/port'\nimport { Locale } from '@/domain'\nimport { getPayload } from 'payload'"
+    expect(inLayer('infrastructure', source)).toEqual([])
+  })
+
+  it('autorise la composition à importer l’infrastructure mais pas la présentation', () => {
+    expect(inLayer('composition', "import { a } from '@/infrastructure/a'")).toEqual([])
+    expect(inLayer('composition', "import { b } from '@/presentation/b'")).toHaveLength(1)
+  })
+
+  it('traite @payload-config comme de l’infrastructure', () => {
+    expect(inLayer('presentation', "import config from '@payload-config'")).toHaveLength(1)
+    expect(inLayer('composition', "import config from '@payload-config'")).toEqual([])
+  })
+
+  it('signale un dossier hors des couches connues', () => {
+    expect(violationsInSource(join(SRC, 'misc', 'file.ts'), '')).toHaveLength(1)
+  })
+})
+```
+Run : `pnpm test tests/unit/architecture.test.ts tests/unit/domain` → **PASS**.
+**Vérification par mutation (obligatoire)** : créer temporairement `src/domain/__violation.ts` contenant `import { x } from '@/infrastructure/y'`, puis constater que **`pnpm lint` échoue** (règle `no-restricted-imports`) **et** que `pnpm test tests/unit/architecture.test.ts` échoue avec `fichier:ligne — la couche « domain » ne doit pas dépendre de « infrastructure »` ; supprimer ensuite le fichier et confirmer que tout repasse au vert.
+
+- [ ] **Step 6 : Vérifier l'outillage**
 
 Run : `pnpm typecheck && pnpm lint && pnpm test` → tout vert.
 Run : `pnpm db:up` → Postgres `healthy` ; `docker compose ps` le montre.
 Run : `cp .env.example .env` (ignoré par git) puis `node -e "require('fs').existsSync('.env')"`.
 Expected : aucune erreur. Si `pnpm typecheck` échoue sur `next-env.d.ts` manquant : `pnpm exec next typegen` ou lancer `pnpm dev` une fois.
 
-- [ ] **Step 6 : Commit** (par l'orchestrateur)
+- [ ] **Step 7 : Commit** (par l'orchestrateur)
 
 ```bash
 git add -A . ':!img' ':!.env'
@@ -319,23 +620,23 @@ git commit -m "chore: scaffold Next 16 + Payload 3 with tooling, Postgres compos
 ## Task 2 : Fondations design — tokens, contraste, `<Glass>`
 
 **Files :**
-- Create : `src/styles/tokens.css`, `src/styles/glass.css`, `src/styles/globals.css`, `src/lib/a11y/contrast.ts`, `src/lib/a11y/tokens.ts`, `src/components/glass/Glass.tsx`, `src/components/glass/GlassFilters.tsx`, `src/components/glass/RefractionFlag.tsx`
-- Test : `tests/unit/contrast.test.ts`, `tests/unit/tokens.contrast.test.ts`, `tests/unit/glass.test.tsx`
+- Create : `src/presentation/styles/tokens.css`, `src/presentation/styles/glass.css`, `src/presentation/styles/globals.css`, `src/presentation/design/contrast.ts`, `src/presentation/design/tokens.ts`, `src/presentation/components/glass/Glass.tsx`, `src/presentation/components/glass/GlassFilters.tsx`, `src/presentation/components/glass/RefractionFlag.tsx`
+- Test : `tests/unit/presentation/design/contrast.test.ts`, `tests/unit/presentation/design/tokens.contrast.test.ts`, `tests/unit/presentation/components/glass.test.tsx`
 
 **Interfaces :**
 - Produces :
-  - `hexToRgb(hex: string): [number, number, number]`, `relativeLuminance(hex: string): number`, `contrastRatio(a: string, b: string): number`, `composite(fg: string, alpha: number, bg: string): string` (`#RRGGBB` majuscules) dans `src/lib/a11y/contrast.ts`
-  - `parseTokens(css: string): Record<string, string>` (clé sans `--`, ex. `ink`) dans `src/lib/a11y/tokens.ts`
+  - `hexToRgb(hex: string): [number, number, number]`, `relativeLuminance(hex: string): number`, `contrastRatio(a: string, b: string): number`, `composite(fg: string, alpha: number, bg: string): string` (`#RRGGBB` majuscules) dans `src/presentation/design/contrast.ts`
+  - `parseTokens(css: string): Record<string, string>` (clé sans `--`, ex. `ink`) dans `src/presentation/design/tokens.ts`
   - `<Glass as? variant? interactive? refract? className? …rest />` avec `GlassVariant = 'surface' | 'card' | 'pill' | 'dock'` ; rend `data-glass`, `data-refract`, `data-interactive`
   - `<GlassFilters />` (défs SVG `#lg-refract`, `aria-hidden`), `<RefractionFlag />` (script inline qui pose `data-refract="on"` sur `<html>` sur Chromium)
   - Classes CSS : `.glass`, `.glass--surface|card|pill|dock`, `.glass-scrim`, `.reveal`, `.container-x`, `.section-y`
 
 - [ ] **Step 1 : Écrire les tests de contraste qui échouent**
 
-`tests/unit/contrast.test.ts` :
+`tests/unit/presentation/design/contrast.test.ts` :
 ```ts
 import { describe, expect, it } from 'vitest'
-import { composite, contrastRatio, hexToRgb, relativeLuminance } from '@/lib/a11y/contrast'
+import { composite, contrastRatio, hexToRgb, relativeLuminance } from '@/presentation/design/contrast'
 
 describe('contrast', () => {
   it('parse le hex', () => {
@@ -357,14 +658,14 @@ describe('contrast', () => {
   })
 })
 ```
-`tests/unit/tokens.contrast.test.ts` :
+`tests/unit/presentation/design/tokens.contrast.test.ts` :
 ```ts
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { composite, contrastRatio } from '@/lib/a11y/contrast'
-import { parseTokens } from '@/lib/a11y/tokens'
+import { composite, contrastRatio } from '@/presentation/design/contrast'
+import { parseTokens } from '@/presentation/design/tokens'
 
-const css = readFileSync('src/styles/tokens.css', 'utf8')
+const css = readFileSync('src/presentation/styles/tokens.css', 'utf8')
 const t = parseTokens(css)
 const glass = composite('#FFFFFF', 0.62, t.bg!)
 const glassSubtle = composite('#FFFFFF', 0.4, t.bg!)
@@ -394,11 +695,11 @@ describe('tokens.css — contrastes texte ≥ 4.5', () => {
   })
 })
 ```
-Run : `pnpm test tests/unit/contrast.test.ts tests/unit/tokens.contrast.test.ts` → **FAIL** (modules/fichier absents).
+Run : `pnpm test tests/unit/presentation/design/contrast.test.ts tests/unit/presentation/design/tokens.contrast.test.ts` → **FAIL** (modules/fichier absents).
 
 - [ ] **Step 2 : Implémenter `contrast.ts` et `tokens.ts`**
 
-`src/lib/a11y/contrast.ts` :
+`src/presentation/design/contrast.ts` :
 ```ts
 export function hexToRgb(hex: string): [number, number, number] {
   let h = hex.trim().replace('#', '')
@@ -429,7 +730,7 @@ export function composite(fg: string, alpha: number, bg: string): string {
   return `#${out.map((c) => c.toString(16).padStart(2, '0')).join('').toUpperCase()}`
 }
 ```
-`src/lib/a11y/tokens.ts` :
+`src/presentation/design/tokens.ts` :
 ```ts
 /** Extrait les custom properties `--nom: #hex;` d'un fichier CSS (clé sans `--`). */
 export function parseTokens(css: string): Record<string, string> {
@@ -441,7 +742,7 @@ export function parseTokens(css: string): Record<string, string> {
 }
 ```
 
-- [ ] **Step 3 : `src/styles/tokens.css`** (source de vérité — valeurs de `MASTER.md`)
+- [ ] **Step 3 : `src/presentation/styles/tokens.css`** (source de vérité — valeurs de `MASTER.md`)
 
 ```css
 :root {
@@ -476,7 +777,7 @@ export function parseTokens(css: string): Record<string, string> {
 ```
 > `parseTokens` ne lit que les valeurs hex ; les `rgb(... / a)` ne sont pas testés par regex (le test recalcule via `composite`).
 
-- [ ] **Step 4 : `src/styles/glass.css`** — trois niveaux + repli opaque
+- [ ] **Step 4 : `src/presentation/styles/glass.css`** — trois niveaux + repli opaque
 
 ```css
 .glass {
@@ -521,7 +822,7 @@ html[data-refract='on'] .glass[data-refract] {
 .glass-scrim { background: linear-gradient(to top, rgb(11 11 20 / 0.62), rgb(11 11 20 / 0)); }
 ```
 
-- [ ] **Step 5 : `src/styles/globals.css`** — Tailwind v4 + thème + utilitaires
+- [ ] **Step 5 : `src/presentation/styles/globals.css`** — Tailwind v4 + thème + utilitaires
 
 ```css
 @import 'tailwindcss';
@@ -562,12 +863,12 @@ h1, h2, h3 { font-family: var(--font-display); color: var(--ink); letter-spacing
 
 - [ ] **Step 6 : Test du composant `<Glass>` (échoue puis passe)**
 
-`tests/unit/glass.test.tsx` :
+`tests/unit/presentation/components/glass.test.tsx` :
 ```tsx
 // @vitest-environment jsdom
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { Glass } from '@/components/glass/Glass'
+import { Glass } from '@/presentation/components/glass/Glass'
 
 describe('<Glass>', () => {
   it('rend un div .glass avec la variante par défaut card', () => {
@@ -595,10 +896,10 @@ describe('<Glass>', () => {
 ```
 Run → **FAIL**. Implémenter :
 
-`src/components/glass/Glass.tsx` :
+`src/presentation/components/glass/Glass.tsx` :
 ```tsx
 import type { ComponentPropsWithoutRef, ElementType } from 'react'
-import { cn } from '@/lib/cn'
+import { cn } from '@/presentation/lib/cn'
 
 export type GlassVariant = 'surface' | 'card' | 'pill' | 'dock'
 
@@ -624,7 +925,7 @@ export function Glass<T extends ElementType = 'div'>({
   )
 }
 ```
-`src/components/glass/GlassFilters.tsx` :
+`src/presentation/components/glass/GlassFilters.tsx` :
 ```tsx
 export function GlassFilters() {
   return (
@@ -640,7 +941,7 @@ export function GlassFilters() {
   )
 }
 ```
-`src/components/glass/RefractionFlag.tsx` :
+`src/presentation/components/glass/RefractionFlag.tsx` :
 ```tsx
 const script = `(function(){try{var d=document.documentElement;d.classList.add('js');var ua=navigator.userAgent;if(/Chrome\\//.test(ua)&&!/CriOS|FxiOS/.test(ua)&&window.CSS&&CSS.supports('backdrop-filter','url(#lg-refract) blur(1px)')){d.setAttribute('data-refract','on')}}catch(e){}})()`
 
@@ -657,7 +958,7 @@ Run : `pnpm test` → **PASS** (contrast, tokens.contrast, glass).
 - [ ] **Step 8 : Commit**
 
 ```bash
-git add src/styles src/lib/a11y src/components/glass tests/unit/contrast.test.ts tests/unit/tokens.contrast.test.ts tests/unit/glass.test.tsx
+git add src/presentation/styles src/presentation/design src/presentation/components/glass tests/unit/presentation/design/contrast.test.ts tests/unit/presentation/design/tokens.contrast.test.ts tests/unit/presentation/components/glass.test.tsx
 git commit -m "feat(design): add liquid glass tokens, contrast guard tests and Glass component"
 ```
 
@@ -666,24 +967,25 @@ git commit -m "feat(design): add liquid glass tokens, contrast guard tests and G
 ## Task 3 : Collections A — accès, icônes, Users, Media, Stacks
 
 **Files :**
-- Create : `src/access/index.ts`, `src/lib/slug.ts`, `src/lib/icons.ts`, `src/lib/icon-names.ts`, `src/collections/Users.ts`, `src/collections/Media.ts`, `src/collections/Stacks.ts`
-- Test : `tests/unit/access.test.ts`, `tests/unit/slug.test.ts`, `tests/unit/icons.test.ts`, `tests/unit/media-alt.test.ts`
+- Create : `src/infrastructure/cms/payload/access.ts`, `src/domain/shared/slug.ts`, `src/domain/stack/stack.ts`, `src/infrastructure/icons/simple-icons-resolver.ts`, `src/domain/service/service-icon.ts`, `src/infrastructure/cms/payload/collections/Users.ts`, `src/infrastructure/cms/payload/collections/Media.ts`, `src/infrastructure/cms/payload/collections/Stacks.ts`
+- Modify : `src/domain/index.ts` (exporte `slug`, `service-icon`, `stack`)
+- Test : `tests/unit/infrastructure/cms/access.test.ts`, `tests/unit/domain/slug.test.ts`, `tests/unit/infrastructure/icons.test.ts`, `tests/unit/infrastructure/cms/media-alt.test.ts`
 
 **Interfaces :**
 - Produces :
-  - `anyone`, `isAdmin`, `publishedOrAdmin`: `Access` (Payload) dans `src/access/index.ts`
-  - `slugify(input: string): string` dans `src/lib/slug.ts`
-  - `type StackIcon = { kind: 'simple'; slug: string; title: string; hex: string; path: string } | { kind: 'upload'; url: string; alt: string } | { kind: 'monogram'; letters: string }` ; `resolveStackIcon(input: { name: string; simpleIconSlug?: string | null; upload?: { url?: string | null; alt?: string | null } | null }): StackIcon` ; `hasSimpleIcon(slug: string): boolean` dans `src/lib/icons.ts` (**serveur uniquement** : importe tout `simple-icons`)
-  - `SERVICE_ICON_NAMES = ['layers','blocks','bot','cloud','shield-check','code','database','rocket','cpu','workflow','globe','smartphone'] as const` + `type ServiceIconName` dans `src/lib/icon-names.ts`
-  - `validateAlt(value: unknown, mimeType: unknown): true | string` exporté de `src/collections/Media.ts`
-  - Collections `Users`, `Media`, `Stacks` (`CollectionConfig`), `STACK_CATEGORIES` exporté de `Stacks.ts`
+  - `anyone`, `isAdmin`, `publishedOrAdmin`: `Access` (Payload) dans `src/infrastructure/cms/payload/access.ts`
+  - `slugify(input: string): string` dans `src/domain/shared/slug.ts`
+  - `StackIcon`, `Stack`, `StackCategory`, `STACK_CATEGORIES` (types métier du **domaine**, `src/domain/stack/stack.ts`) ; `resolveStackIcon(input: { name: string; simpleIconSlug?: string | null; upload?: { url?: string | null; alt?: string | null } | null }): StackIcon` ; `hasSimpleIcon(slug: string): boolean` dans `src/infrastructure/icons/simple-icons-resolver.ts` (**serveur uniquement** : importe tout `simple-icons`)
+  - `SERVICE_ICON_NAMES = ['layers','blocks','bot','cloud','shield-check','code','database','rocket','cpu','workflow','globe','smartphone'] as const` + `type ServiceIconName` dans `src/domain/service/service-icon.ts`
+  - `validateAlt(value: unknown, mimeType: unknown): true | string` exporté de `src/infrastructure/cms/payload/collections/Media.ts`
+  - Collections `Users`, `Media`, `Stacks` (`CollectionConfig`) — `Stacks.ts` n'ajoute que les **libellés FR** des catégories (`CATEGORY_LABELS`) : les valeurs viennent du domaine
 
 - [ ] **Step 1 : Tests d'accès qui échouent**
 
-`tests/unit/access.test.ts` :
+`tests/unit/infrastructure/cms/access.test.ts` :
 ```ts
 import { describe, expect, it } from 'vitest'
-import { anyone, isAdmin, publishedOrAdmin } from '@/access'
+import { anyone, isAdmin, publishedOrAdmin } from '@/infrastructure/cms/payload/access'
 
 const asUser = { req: { user: { id: 1 } } } as never
 const asGuest = { req: { user: null } } as never
@@ -702,7 +1004,7 @@ describe('access', () => {
   })
 })
 ```
-Run → **FAIL**. Implémenter `src/access/index.ts` :
+Run → **FAIL**. Implémenter `src/infrastructure/cms/payload/access.ts` :
 ```ts
 import type { Access } from 'payload'
 
@@ -715,10 +1017,10 @@ Run → **PASS**.
 
 - [ ] **Step 2 : `slugify` (TDD)**
 
-`tests/unit/slug.test.ts` :
+`tests/unit/domain/slug.test.ts` :
 ```ts
 import { describe, expect, it } from 'vitest'
-import { slugify } from '@/lib/slug'
+import { slugify } from '@/domain'
 
 describe('slugify', () => {
   it('retire accents et ponctuation', () => {
@@ -732,7 +1034,7 @@ describe('slugify', () => {
   })
 })
 ```
-Implémentation `src/lib/slug.ts` :
+Implémentation `src/domain/shared/slug.ts` :
 ```ts
 export function slugify(input: string): string {
   return input
@@ -747,10 +1049,10 @@ export function slugify(input: string): string {
 
 - [ ] **Step 3 : Résolveur d'icônes (TDD)**
 
-`tests/unit/icons.test.ts` :
+`tests/unit/infrastructure/icons.test.ts` :
 ```ts
 import { describe, expect, it } from 'vitest'
-import { hasSimpleIcon, resolveStackIcon } from '@/lib/icons'
+import { hasSimpleIcon, resolveStackIcon } from '@/infrastructure/icons/simple-icons-resolver'
 
 describe('resolveStackIcon', () => {
   it('résout un slug Simple Icons valide', () => {
@@ -779,9 +1081,10 @@ describe('resolveStackIcon', () => {
   })
 })
 ```
-Implémentation `src/lib/icons.ts` :
+Implémentation `src/infrastructure/icons/simple-icons-resolver.ts` :
 ```ts
 import * as simpleIcons from 'simple-icons'
+import type { StackIcon } from '@/domain'
 
 type SimpleIconData = { slug: string; title: string; hex: string; path: string }
 
@@ -791,18 +1094,13 @@ const BY_SLUG: Map<string, SimpleIconData> = new Map(
     .map((v) => [v.slug, v]),
 )
 
-export type StackIcon =
-  | { kind: 'simple'; slug: string; title: string; hex: string; path: string }
-  | { kind: 'upload'; url: string; alt: string }
-  | { kind: 'monogram'; letters: string }
-
 export function hasSimpleIcon(slug: string): boolean {
   return BY_SLUG.has(slug)
 }
 
 function monogram(name: string): string {
   const words = name.trim().split(/[\s./-]+/).filter(Boolean)
-  const letters = words.length >= 2 ? words.slice(0, 2).map((w) => w[0]!).join('') : (words[0] ?? '?').slice(0, 2)
+  const letters = words.length >= 2 ? words.slice(0, 2).map((w) => w.charAt(0)).join('') : (words[0] ?? '?').slice(0, 2)
   return letters.toUpperCase()
 }
 
@@ -819,7 +1117,7 @@ export function resolveStackIcon(input: {
 ```
 > Vérifier que `simple-icons@16` exporte bien des objets `{ slug, title, hex, path }` (`si*`). Sinon adapter `BY_SLUG` et garder l'interface publique **inchangée**.
 
-`src/lib/icon-names.ts` :
+`src/domain/service/service-icon.ts` :
 ```ts
 export const SERVICE_ICON_NAMES = [
   'layers', 'blocks', 'bot', 'cloud', 'shield-check', 'code',
@@ -828,12 +1126,33 @@ export const SERVICE_ICON_NAMES = [
 export type ServiceIconName = (typeof SERVICE_ICON_NAMES)[number]
 ```
 
+`src/domain/stack/stack.ts` (types métier — **aucun import**) :
+```ts
+export const STACK_CATEGORIES = ['language', 'frontend', 'backend', 'architecture', 'testing', 'devops', 'security', 'ai'] as const
+export type StackCategory = (typeof STACK_CATEGORIES)[number]
+
+export type StackIcon =
+  | { readonly kind: 'simple'; readonly slug: string; readonly title: string; readonly hex: string; readonly path: string }
+  | { readonly kind: 'upload'; readonly url: string; readonly alt: string }
+  | { readonly kind: 'monogram'; readonly letters: string }
+
+export type Stack = {
+  readonly id: string
+  readonly name: string
+  readonly slug: string
+  readonly category: StackCategory
+  readonly featured: boolean
+  readonly icon: StackIcon
+}
+```
+`src/domain/index.ts` (barrel créé en T1) : ajouter `export * from './shared/slug'`, `export * from './service/service-icon'`, `export * from './stack/stack'`.
+
 - [ ] **Step 4 : `validateAlt` (TDD) + collections**
 
-`tests/unit/media-alt.test.ts` :
+`tests/unit/infrastructure/cms/media-alt.test.ts` :
 ```ts
 import { describe, expect, it } from 'vitest'
-import { validateAlt } from '@/collections/Media'
+import { validateAlt } from '@/infrastructure/cms/payload/collections/Media'
 
 describe('validateAlt', () => {
   it('exige un alt pour une image', () => {
@@ -851,10 +1170,10 @@ describe('validateAlt', () => {
   })
 })
 ```
-`src/collections/Users.ts` :
+`src/infrastructure/cms/payload/collections/Users.ts` :
 ```ts
 import type { CollectionConfig } from 'payload'
-import { isAdmin } from '@/access'
+import { isAdmin } from '@/infrastructure/cms/payload/access'
 
 export const Users: CollectionConfig = {
   slug: 'users',
@@ -865,10 +1184,11 @@ export const Users: CollectionConfig = {
   fields: [],
 }
 ```
-`src/collections/Media.ts` :
+`src/infrastructure/cms/payload/collections/Media.ts` :
 ```ts
+import path from 'node:path'
 import type { CollectionConfig } from 'payload'
-import { anyone, isAdmin } from '@/access'
+import { anyone, isAdmin } from '@/infrastructure/cms/payload/access'
 
 export function validateAlt(value: unknown, mimeType: unknown): true | string {
   const isImage = typeof mimeType === 'string' && mimeType.startsWith('image/')
@@ -891,8 +1211,7 @@ export const Media: CollectionConfig = {
     ],
     adminThumbnail: 'thumb',
     focalPoint: true,
-    // Relatif au dossier de la config (src/) → <racine>/media, ignoré par git. Vérifier au premier upload.
-    staticDir: '../media',
+    staticDir: path.resolve(process.cwd(), 'media'), // <racine>/media, ignoré par git
   },
   fields: [
     {
@@ -905,22 +1224,22 @@ export const Media: CollectionConfig = {
   ],
 }
 ```
-`src/collections/Stacks.ts` :
+`src/infrastructure/cms/payload/collections/Stacks.ts` :
 ```ts
 import type { CollectionConfig } from 'payload'
-import { anyone, isAdmin } from '@/access'
-import { slugify } from '@/lib/slug'
+import { anyone, isAdmin } from '@/infrastructure/cms/payload/access'
+import { slugify, STACK_CATEGORIES, type StackCategory } from '@/domain'
 
-export const STACK_CATEGORIES = [
-  { label: 'Langages', value: 'language' },
-  { label: 'Frontend', value: 'frontend' },
-  { label: 'Backend', value: 'backend' },
-  { label: 'Architecture', value: 'architecture' },
-  { label: 'Tests', value: 'testing' },
-  { label: 'DevOps & Cloud', value: 'devops' },
-  { label: 'Sécurité', value: 'security' },
-  { label: 'IA', value: 'ai' },
-] as const
+const CATEGORY_LABELS: Record<StackCategory, string> = {
+  language: 'Langages',
+  frontend: 'Frontend',
+  backend: 'Backend',
+  architecture: 'Architecture',
+  testing: 'Tests',
+  devops: 'DevOps & Cloud',
+  security: 'Sécurité',
+  ai: 'IA',
+}
 
 export const Stacks: CollectionConfig = {
   slug: 'stacks',
@@ -932,7 +1251,7 @@ export const Stacks: CollectionConfig = {
   fields: [
     { name: 'name', type: 'text', required: true },
     { name: 'slug', type: 'text', unique: true, index: true, admin: { description: 'Généré depuis le nom si vide.' } },
-    { name: 'category', type: 'select', required: true, options: [...STACK_CATEGORIES] },
+    { name: 'category', type: 'select', required: true, options: STACK_CATEGORIES.map((value) => ({ label: CATEGORY_LABELS[value], value })) },
     {
       name: 'icon',
       type: 'group',
@@ -952,7 +1271,7 @@ Run : `pnpm test` → tout **PASS** ; `pnpm typecheck` vert.
 - [ ] **Step 5 : Commit**
 
 ```bash
-git add src/access src/lib/slug.ts src/lib/icons.ts src/lib/icon-names.ts src/collections/Users.ts src/collections/Media.ts src/collections/Stacks.ts tests/unit/access.test.ts tests/unit/slug.test.ts tests/unit/icons.test.ts tests/unit/media-alt.test.ts
+git add src/infrastructure/cms/payload/access.ts src/domain/shared/slug.ts src/infrastructure/icons/simple-icons-resolver.ts src/domain/service/service-icon.ts src/domain/stack/stack.ts src/domain/index.ts src/infrastructure/cms/payload/collections/Users.ts src/infrastructure/cms/payload/collections/Media.ts src/infrastructure/cms/payload/collections/Stacks.ts tests/unit/infrastructure/cms/access.test.ts tests/unit/domain/slug.test.ts tests/unit/infrastructure/icons.test.ts tests/unit/infrastructure/cms/media-alt.test.ts
 git commit -m "feat(cms): add access rules, stack icon resolver and Users/Media/Stacks collections"
 ```
 
@@ -961,34 +1280,67 @@ git commit -m "feat(cms): add access rules, stack icon resolver and Users/Media/
 ## Task 4 : Collections B — Projects, Services, Experiences, Messages + hooks de revalidation
 
 **Files :**
-- Create : `src/collections/Projects.ts`, `src/collections/Services.ts`, `src/collections/Experiences.ts`, `src/collections/Messages.ts`, `src/hooks/revalidate.ts`
-- Test : `tests/unit/revalidate.test.ts`, `tests/unit/collections-shape.test.ts`
+- Create (domaine/application) : `src/domain/contact/contact-topic.ts`, `src/application/revalidation/paths-to-revalidate.ts` ; Modify : `src/domain/index.ts` (exporte `contact-topic`) ; Test : `tests/unit/application/paths-to-revalidate.test.ts`
+- Create : `src/infrastructure/cms/payload/collections/Projects.ts`, `src/infrastructure/cms/payload/collections/Services.ts`, `src/infrastructure/cms/payload/collections/Experiences.ts`, `src/infrastructure/cms/payload/collections/Messages.ts`, `src/infrastructure/cms/payload/hooks/revalidate.ts`
+- Test : `tests/unit/infrastructure/cms/revalidate.test.ts`, `tests/unit/infrastructure/cms/collections-shape.test.ts`
 
 **Interfaces :**
-- Consumes : `anyone`, `isAdmin`, `publishedOrAdmin` (T3) ; `slugify` (T3) ; `SERVICE_ICON_NAMES` (T3)
+- Consumes : `anyone`, `isAdmin`, `publishedOrAdmin` (T3) ; `slugify`, `SERVICE_ICON_NAMES`, `LOCALES` (domaine, T1/T3)
 - Produces :
-  - `LOCALES = ['fr','en'] as const`, `type Locale = 'fr' | 'en'`, `pathsFor(kind: 'home' | 'project', slug?: string): string[]`, `createRevalidateHook(kind: 'home' | 'project', revalidate?: (path: string) => void): CollectionAfterChangeHook`, `createRevalidateDeleteHook(kind, revalidate?): CollectionAfterDeleteHook`, `createRevalidateGlobalHook(revalidate?): GlobalAfterChangeHook` dans `src/hooks/revalidate.ts`
-  - Collections `Projects` (slug `projects`, **drafts activés**), `Services` (`services`), `Experiences` (`experiences`), `Messages` (`messages`) ; `MESSAGE_TOPICS = ['project','ai','job','other'] as const` exporté de `Messages.ts`
+  - **application** : `type RevalidationKind = 'home' | 'project'`, `pathsToRevalidate(kind: RevalidationKind, slug?: string | null): string[]` dans `src/application/revalidation/paths-to-revalidate.ts` (**pur**, testé)
+  - **infrastructure** : `type RevalidateFn = (path: string) => void`, `createRevalidateHook(kind, revalidate?): CollectionAfterChangeHook`, `createRevalidateDeleteHook(kind, revalidate?): CollectionAfterDeleteHook`, `createRevalidateGlobalHook(revalidate?): GlobalAfterChangeHook` dans `src/infrastructure/cms/payload/hooks/revalidate.ts` (adaptateur Next : appelle `revalidatePath`, **aucune règle métier**)
+  - **domaine** : `CONTACT_TOPICS`, `type ContactTopic` dans `src/domain/contact/contact-topic.ts`
+  - Collections `Projects` (slug `projects`, **drafts activés**), `Services` (`services`), `Experiences` (`experiences`), `Messages` (`messages`)
   - Champs (noms exacts, consommés par T7/T8) — **Projects** : `title`(L) `slug` `tagline`(L) `summary`(L) `caseStudy`(L, richText) `cover`(upload) `gallery`(upload hasMany) `stacks`(rel hasMany) `links{live,repo,caseStudyUrl}` `year` `client` `featured` `order` ; **Services** : `title`(L) `description`(L) `icon`(select) `tint`(select) `order` ; **Experiences** : `kind` `role`(L) `organization` `location` `start`(date) `end`(date) `summary`(L) `highlights[{text}(L)]` `stacks`(rel hasMany) `order` ; **Messages** : `name` `email` `topic` `message` `ipHash` `locale` `status`
+
+- [ ] **Step 0 : Chemins à revalider (application, pur) et sujets de contact (domaine) — TDD**
+
+Quelles pages invalider quand un contenu change est une **règle** : elle vit dans l'application, pure et testée ; le hook Payload n'est qu'un adaptateur qui appelle Next.
+`tests/unit/application/paths-to-revalidate.test.ts` :
+```ts
+import { describe, expect, it } from 'vitest'
+import { pathsToRevalidate } from '@/application/revalidation/paths-to-revalidate'
+
+describe('pathsToRevalidate', () => {
+  it('home → la page d’accueil de chaque langue', () => {
+    expect(pathsToRevalidate('home')).toEqual(['/fr', '/en'])
+  })
+
+  it('project → accueil + page détail de chaque langue', () => {
+    expect(pathsToRevalidate('project', 'ma-app')).toEqual(['/fr', '/en', '/fr/projects/ma-app', '/en/projects/ma-app'])
+  })
+
+  it('project sans slug → accueil seulement', () => {
+    expect(pathsToRevalidate('project')).toEqual(['/fr', '/en'])
+    expect(pathsToRevalidate('project', null)).toEqual(['/fr', '/en'])
+  })
+})
+```
+Run → **FAIL**. `src/application/revalidation/paths-to-revalidate.ts` :
+```ts
+import { LOCALES } from '@/domain'
+
+export type RevalidationKind = 'home' | 'project'
+
+export function pathsToRevalidate(kind: RevalidationKind, slug?: string | null): string[] {
+  const home = LOCALES.map((locale) => `/${locale}`)
+  if (kind !== 'project' || !slug) return home
+  return [...home, ...LOCALES.map((locale) => `/${locale}/projects/${slug}`)]
+}
+```
+`src/domain/contact/contact-topic.ts` (aucun import) :
+```ts
+export const CONTACT_TOPICS = ['project', 'ai', 'job', 'other'] as const
+export type ContactTopic = (typeof CONTACT_TOPICS)[number]
+```
+puis ajouter `export * from './contact/contact-topic'` à `src/domain/index.ts`. Run → **PASS**.
 
 - [ ] **Step 1 : Tests des hooks qui échouent**
 
-`tests/unit/revalidate.test.ts` :
+`tests/unit/infrastructure/cms/revalidate.test.ts` :
 ```ts
 import { describe, expect, it, vi } from 'vitest'
-import { createRevalidateDeleteHook, createRevalidateGlobalHook, createRevalidateHook, pathsFor } from '@/hooks/revalidate'
-
-describe('pathsFor', () => {
-  it('home → /fr et /en', () => {
-    expect(pathsFor('home')).toEqual(['/fr', '/en'])
-  })
-  it('project → home + détail par locale', () => {
-    expect(pathsFor('project', 'ma-app')).toEqual(['/fr', '/en', '/fr/projects/ma-app', '/en/projects/ma-app'])
-  })
-  it('project sans slug → home seulement', () => {
-    expect(pathsFor('project')).toEqual(['/fr', '/en'])
-  })
-})
+import { createRevalidateDeleteHook, createRevalidateGlobalHook, createRevalidateHook } from '@/infrastructure/cms/payload/hooks/revalidate'
 
 describe('createRevalidateHook', () => {
   it('revalide les chemins du document', () => {
@@ -1029,57 +1381,52 @@ describe('hooks delete / global', () => {
   })
 })
 ```
-Run : `pnpm test tests/unit/revalidate.test.ts` → **FAIL**.
+Run : `pnpm test tests/unit/infrastructure/cms/revalidate.test.ts` → **FAIL**.
 
-- [ ] **Step 2 : Implémenter `src/hooks/revalidate.ts`**
+- [ ] **Step 2 : Implémenter `src/infrastructure/cms/payload/hooks/revalidate.ts`**
 
 ```ts
 import { revalidatePath as nextRevalidatePath } from 'next/cache'
 import type { CollectionAfterChangeHook, CollectionAfterDeleteHook, GlobalAfterChangeHook } from 'payload'
+import { pathsToRevalidate, type RevalidationKind } from '@/application/revalidation/paths-to-revalidate'
 
-export const LOCALES = ['fr', 'en'] as const
-export type Locale = (typeof LOCALES)[number]
 export type RevalidateFn = (path: string) => void
-type Kind = 'home' | 'project'
 
-export function pathsFor(kind: Kind, slug?: string | null): string[] {
-  const home = LOCALES.map((l) => `/${l}`)
-  if (kind === 'project' && slug) return [...home, ...LOCALES.map((l) => `/${l}/projects/${slug}`)]
-  return home
-}
+const defaultRevalidate: RevalidateFn = (path) => nextRevalidatePath(path)
 
-function run(paths: string[], revalidate: RevalidateFn) {
-  for (const p of new Set(paths)) {
+function revalidateAll(paths: string[], revalidate: RevalidateFn): void {
+  for (const path of new Set(paths)) {
     try {
-      revalidate(p)
+      revalidate(path)
     } catch {
-      /* hors contexte de requête Next (seed, scripts, tests) : rien à invalider */
+      // Hors contexte de requête Next (seed, scripts, tests) : il n'y a aucun cache à invalider.
     }
   }
 }
 
-const slugOf = (d: unknown) => (d && typeof d === 'object' ? ((d as { slug?: string }).slug ?? null) : null)
+const slugOf = (doc: unknown): string | null =>
+  doc && typeof doc === 'object' ? ((doc as { slug?: string }).slug ?? null) : null
 
-export function createRevalidateHook(kind: Kind, revalidate: RevalidateFn = (p) => nextRevalidatePath(p)): CollectionAfterChangeHook {
+export function createRevalidateHook(kind: RevalidationKind, revalidate: RevalidateFn = defaultRevalidate): CollectionAfterChangeHook {
   return ({ doc, previousDoc, req }) => {
     if (req.context?.disableRevalidate) return doc
-    run([...pathsFor(kind, slugOf(doc)), ...pathsFor(kind, slugOf(previousDoc))], revalidate)
+    revalidateAll([...pathsToRevalidate(kind, slugOf(doc)), ...pathsToRevalidate(kind, slugOf(previousDoc))], revalidate)
     return doc
   }
 }
 
-export function createRevalidateDeleteHook(kind: Kind, revalidate: RevalidateFn = (p) => nextRevalidatePath(p)): CollectionAfterDeleteHook {
+export function createRevalidateDeleteHook(kind: RevalidationKind, revalidate: RevalidateFn = defaultRevalidate): CollectionAfterDeleteHook {
   return ({ doc, req }) => {
     if (req.context?.disableRevalidate) return doc
-    run(pathsFor(kind, slugOf(doc)), revalidate)
+    revalidateAll(pathsToRevalidate(kind, slugOf(doc)), revalidate)
     return doc
   }
 }
 
-export function createRevalidateGlobalHook(revalidate: RevalidateFn = (p) => nextRevalidatePath(p)): GlobalAfterChangeHook {
+export function createRevalidateGlobalHook(revalidate: RevalidateFn = defaultRevalidate): GlobalAfterChangeHook {
   return ({ doc, req }) => {
     if (req.context?.disableRevalidate) return doc
-    run(pathsFor('home'), revalidate)
+    revalidateAll(pathsToRevalidate('home'), revalidate)
     return doc
   }
 }
@@ -1088,14 +1435,14 @@ Run → **PASS**.
 
 - [ ] **Step 3 : Test de forme des collections (échoue)**
 
-`tests/unit/collections-shape.test.ts` :
+`tests/unit/infrastructure/cms/collections-shape.test.ts` :
 ```ts
 import { describe, expect, it } from 'vitest'
 import type { CollectionConfig, Field } from 'payload'
-import { Experiences } from '@/collections/Experiences'
-import { Messages } from '@/collections/Messages'
-import { Projects } from '@/collections/Projects'
-import { Services } from '@/collections/Services'
+import { Experiences } from '@/infrastructure/cms/payload/collections/Experiences'
+import { Messages } from '@/infrastructure/cms/payload/collections/Messages'
+import { Projects } from '@/infrastructure/cms/payload/collections/Projects'
+import { Services } from '@/infrastructure/cms/payload/collections/Services'
 
 const field = (c: CollectionConfig, name: string): Field | undefined =>
   c.fields.find((f) => 'name' in f && f.name === name)
@@ -1152,12 +1499,12 @@ Run → **FAIL**.
 
 - [ ] **Step 4 : Implémenter les collections**
 
-`src/collections/Projects.ts` :
+`src/infrastructure/cms/payload/collections/Projects.ts` :
 ```ts
 import type { CollectionConfig } from 'payload'
-import { isAdmin, publishedOrAdmin } from '@/access'
-import { createRevalidateDeleteHook, createRevalidateHook } from '@/hooks/revalidate'
-import { slugify } from '@/lib/slug'
+import { isAdmin, publishedOrAdmin } from '@/infrastructure/cms/payload/access'
+import { createRevalidateDeleteHook, createRevalidateHook } from '@/infrastructure/cms/payload/hooks/revalidate'
+import { slugify } from '@/domain'
 
 const httpUrl = (v: unknown) => (!v || /^https?:\/\//.test(String(v)) ? true : 'URL en http(s) attendue.')
 
@@ -1195,12 +1542,12 @@ export const Projects: CollectionConfig = {
   ],
 }
 ```
-`src/collections/Services.ts` :
+`src/infrastructure/cms/payload/collections/Services.ts` :
 ```ts
 import type { CollectionConfig } from 'payload'
-import { anyone, isAdmin } from '@/access'
-import { createRevalidateDeleteHook, createRevalidateHook } from '@/hooks/revalidate'
-import { SERVICE_ICON_NAMES } from '@/lib/icon-names'
+import { anyone, isAdmin } from '@/infrastructure/cms/payload/access'
+import { createRevalidateDeleteHook, createRevalidateHook } from '@/infrastructure/cms/payload/hooks/revalidate'
+import { SERVICE_ICON_NAMES } from '@/domain'
 
 export const Services: CollectionConfig = {
   slug: 'services',
@@ -1216,11 +1563,11 @@ export const Services: CollectionConfig = {
   ],
 }
 ```
-`src/collections/Experiences.ts` :
+`src/infrastructure/cms/payload/collections/Experiences.ts` :
 ```ts
 import type { CollectionConfig } from 'payload'
-import { anyone, isAdmin } from '@/access'
-import { createRevalidateDeleteHook, createRevalidateHook } from '@/hooks/revalidate'
+import { anyone, isAdmin } from '@/infrastructure/cms/payload/access'
+import { createRevalidateDeleteHook, createRevalidateHook } from '@/infrastructure/cms/payload/hooks/revalidate'
 
 export const Experiences: CollectionConfig = {
   slug: 'experiences',
@@ -1241,12 +1588,11 @@ export const Experiences: CollectionConfig = {
   ],
 }
 ```
-`src/collections/Messages.ts` :
+`src/infrastructure/cms/payload/collections/Messages.ts` :
 ```ts
 import type { CollectionConfig } from 'payload'
-import { isAdmin } from '@/access'
-
-export const MESSAGE_TOPICS = ['project', 'ai', 'job', 'other'] as const
+import { isAdmin } from '@/infrastructure/cms/payload/access'
+import { CONTACT_TOPICS, LOCALES } from '@/domain'
 
 export const Messages: CollectionConfig = {
   slug: 'messages',
@@ -1256,10 +1602,10 @@ export const Messages: CollectionConfig = {
   fields: [
     { name: 'name', type: 'text', required: true },
     { name: 'email', type: 'email', required: true },
-    { name: 'topic', type: 'select', required: true, options: MESSAGE_TOPICS.map((v) => ({ label: v, value: v })) },
+    { name: 'topic', type: 'select', required: true, options: CONTACT_TOPICS.map((v) => ({ label: v, value: v })) },
     { name: 'message', type: 'textarea', required: true },
     { name: 'ipHash', type: 'text', index: true, admin: { readOnly: true } },
-    { name: 'locale', type: 'select', options: ['fr', 'en'].map((v) => ({ label: v, value: v })) },
+    { name: 'locale', type: 'select', options: LOCALES.map((v) => ({ label: v, value: v })) },
     { name: 'status', type: 'select', defaultValue: 'new', options: ['new', 'read', 'archived'].map((v) => ({ label: v, value: v })), admin: { position: 'sidebar' } },
   ],
 }
@@ -1269,7 +1615,7 @@ Run : `pnpm test` → **PASS** ; `pnpm typecheck` vert.
 - [ ] **Step 5 : Commit**
 
 ```bash
-git add src/collections/Projects.ts src/collections/Services.ts src/collections/Experiences.ts src/collections/Messages.ts src/hooks tests/unit/revalidate.test.ts tests/unit/collections-shape.test.ts
+git add src/infrastructure/cms/payload/collections/Projects.ts src/infrastructure/cms/payload/collections/Services.ts src/infrastructure/cms/payload/collections/Experiences.ts src/infrastructure/cms/payload/collections/Messages.ts src/infrastructure/cms/payload/hooks src/application/revalidation src/domain/contact src/domain/index.ts tests/unit/application/paths-to-revalidate.test.ts tests/unit/infrastructure/cms/revalidate.test.ts tests/unit/infrastructure/cms/collections-shape.test.ts
 git commit -m "feat(cms): add Projects (drafts), Services, Experiences, Messages and revalidation hooks"
 ```
 
@@ -1278,24 +1624,24 @@ git commit -m "feat(cms): add Projects (drafts), Services, Experiences, Messages
 ## Task 5 : Globals, config Payload complète, migration initiale, types, test d'intégration
 
 **Files :**
-- Create : `src/globals/Site.ts`, `src/globals/Cinematic.ts`, `tests/unit/globals-shape.test.ts`, `tests/integration/payload.int.test.ts`, `src/migrations/*` (générés)
-- Modify : `src/payload.config.ts` (remplace le minimal de T1), `src/payload-types.ts` (généré), `src/app/(payload)/admin/importMap.js` (régénéré)
+- Create : `src/infrastructure/cms/payload/globals/Site.ts`, `src/infrastructure/cms/payload/globals/Cinematic.ts`, `tests/unit/infrastructure/cms/globals-shape.test.ts`, `tests/integration/payload.int.test.ts`, `src/infrastructure/cms/payload/migrations/*` (générés)
+- Modify : `src/infrastructure/cms/payload/payload.config.ts` (remplace le minimal de T1), `src/infrastructure/cms/payload/payload-types.ts` (généré), `src/app/(payload)/admin/importMap.js` (régénéré)
 
 **Interfaces :**
 - Consumes : toutes les collections (T3, T4), `createRevalidateGlobalHook` (T4), `anyone`/`isAdmin` (T3)
 - Produces : globals `site` et `cinematic` ; **noms de champs exacts** :
   - `site` → onglets nommés (donc **groupes**) : `identity{name,jobTitle(L),tagline(L),location}` · `hero{eyebrow(L),rotatingTitles[{text(L)}],ctaPrimary(L),ctaSecondary(L),chips[{value,label(L)}],trustedByTitle(L),trustedBy[{name,url}]}` · `about{headline(L),bio(L),autoStats,stats[{value,label(L)}]}` · `process{headline(L),steps[{title(L),text(L)}]}` · `contact{email,phone,showPhone,linkedin,github,contactTo}` · `cv{cvFullstack(upload),cvAi(upload)}` · `seo{title(L),description(L),ogImage(upload)}`
   - `cinematic` → `avatarModel` `avatarPortrait` `heroPoster` (uploads) · `heroVideoDesktop{mp4,webm}` · `heroVideoMobile{mp4,webm}` · `scrubVideo`
-  - `import config from '@payload-config'` ; types générés `Project, Stack, Service, Experience, Media, Message, Site, Cinematic` dans `@/payload-types`
+  - `import config from '@payload-config'` ; types générés `Project, Stack, Service, Experience, Media, Message, Site, Cinematic` dans `@/infrastructure/cms/payload/payload-types`
 
 - [ ] **Step 1 : Test de forme des globals (échoue)**
 
-`tests/unit/globals-shape.test.ts` :
+`tests/unit/infrastructure/cms/globals-shape.test.ts` :
 ```ts
 import { describe, expect, it } from 'vitest'
 import type { Field, GlobalConfig } from 'payload'
-import { Cinematic } from '@/globals/Cinematic'
-import { Site } from '@/globals/Site'
+import { Cinematic } from '@/infrastructure/cms/payload/globals/Cinematic'
+import { Site } from '@/infrastructure/cms/payload/globals/Site'
 
 const tabs = (g: GlobalConfig) => (g.fields[0] as { tabs: Array<{ name?: string; fields: Field[] }> }).tabs
 const tab = (name: string) => tabs(Site).find((t) => t.name === name)
@@ -1329,11 +1675,11 @@ Run → **FAIL**.
 
 - [ ] **Step 2 : Implémenter les globals**
 
-`src/globals/Site.ts` (structure complète — chaque champ listé dans **Interfaces** ; `L` = `localized: true`) :
+`src/infrastructure/cms/payload/globals/Site.ts` (structure complète — chaque champ listé dans **Interfaces** ; `L` = `localized: true`) :
 ```ts
 import type { GlobalConfig } from 'payload'
-import { anyone, isAdmin } from '@/access'
-import { createRevalidateGlobalHook } from '@/hooks/revalidate'
+import { anyone, isAdmin } from '@/infrastructure/cms/payload/access'
+import { createRevalidateGlobalHook } from '@/infrastructure/cms/payload/hooks/revalidate'
 
 export const Site: GlobalConfig = {
   slug: 'site',
@@ -1413,11 +1759,11 @@ export const Site: GlobalConfig = {
   ],
 }
 ```
-`src/globals/Cinematic.ts` :
+`src/infrastructure/cms/payload/globals/Cinematic.ts` :
 ```ts
 import type { Field, GlobalConfig } from 'payload'
-import { anyone, isAdmin } from '@/access'
-import { createRevalidateGlobalHook } from '@/hooks/revalidate'
+import { anyone, isAdmin } from '@/infrastructure/cms/payload/access'
+import { createRevalidateGlobalHook } from '@/infrastructure/cms/payload/hooks/revalidate'
 
 const image = { mimeType: { contains: 'image' } }
 const video = (ext: 'mp4' | 'webm') => ({ mimeType: { contains: ext } })
@@ -1443,9 +1789,9 @@ export const Cinematic: GlobalConfig = {
   ],
 }
 ```
-Run : `pnpm test tests/unit/globals-shape.test.ts` → **PASS**.
+Run : `pnpm test tests/unit/infrastructure/cms/globals-shape.test.ts` → **PASS**.
 
-- [ ] **Step 3 : `src/payload.config.ts` complète**
+- [ ] **Step 3 : `src/infrastructure/cms/payload/payload.config.ts` complète**
 
 ```ts
 import path from 'node:path'
@@ -1457,15 +1803,15 @@ import { en } from '@payloadcms/translations/languages/en'
 import { fr } from '@payloadcms/translations/languages/fr'
 import { buildConfig } from 'payload'
 import sharp from 'sharp'
-import { Experiences } from '@/collections/Experiences'
-import { Media } from '@/collections/Media'
-import { Messages } from '@/collections/Messages'
-import { Projects } from '@/collections/Projects'
-import { Services } from '@/collections/Services'
-import { Stacks } from '@/collections/Stacks'
-import { Users } from '@/collections/Users'
-import { Cinematic } from '@/globals/Cinematic'
-import { Site } from '@/globals/Site'
+import { Experiences } from '@/infrastructure/cms/payload/collections/Experiences'
+import { Media } from '@/infrastructure/cms/payload/collections/Media'
+import { Messages } from '@/infrastructure/cms/payload/collections/Messages'
+import { Projects } from '@/infrastructure/cms/payload/collections/Projects'
+import { Services } from '@/infrastructure/cms/payload/collections/Services'
+import { Stacks } from '@/infrastructure/cms/payload/collections/Stacks'
+import { Users } from '@/infrastructure/cms/payload/collections/Users'
+import { Cinematic } from '@/infrastructure/cms/payload/globals/Cinematic'
+import { Site } from '@/infrastructure/cms/payload/globals/Site'
 
 const dirname = path.dirname(fileURLToPath(import.meta.url))
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
@@ -1474,7 +1820,7 @@ const blobToken = process.env.BLOB_READ_WRITE_TOKEN
 export default buildConfig({
   admin: {
     user: Users.slug,
-    importMap: { baseDir: path.resolve(dirname) },
+    importMap: { baseDir: path.resolve(dirname, '../../..') }, // = src/
     meta: { titleSuffix: ' — Portfolio CMS' },
   },
   collections: [Users, Media, Stacks, Projects, Services, Experiences, Messages],
@@ -1483,6 +1829,7 @@ export default buildConfig({
   secret: process.env.PAYLOAD_SECRET ?? '',
   db: postgresAdapter({
     pool: { connectionString: process.env.DATABASE_URI },
+    migrationDir: path.resolve(dirname, 'migrations'),
     // Dev : push auto du schéma. CI/prod : migrations uniquement (`pnpm migrate`).
     push: process.env.PAYLOAD_DB_PUSH === 'true',
   }),
@@ -1514,10 +1861,10 @@ export default buildConfig({
 pnpm db:up
 pnpm generate:types
 pnpm generate:importmap
-pnpm migrate:create initial      # crée src/migrations/<horodatage>_initial.ts + index.ts
+pnpm migrate:create initial      # crée src/infrastructure/cms/payload/migrations/<horodatage>_initial.ts + index.ts
 pnpm migrate                     # applique sur la base locale
 ```
-Expected : `src/payload-types.ts` contient `interface Project`, `Site`, `Cinematic` ; `pnpm typecheck` vert. Si `migrate:create` demande de confirmer un `push` existant, répondre non et repartir d'une base vide : `pnpm db:down && docker volume rm <projet>_pgdata && pnpm db:up`.
+Expected : `src/infrastructure/cms/payload/payload-types.ts` contient `interface Project`, `Site`, `Cinematic` ; `pnpm typecheck` vert. Si `migrate:create` demande de confirmer un `push` existant, répondre non et repartir d'une base vide : `pnpm db:down && docker volume rm <projet>_pgdata && pnpm db:up`.
 
 - [ ] **Step 5 : Test d'intégration (base réelle)**
 
@@ -1574,7 +1921,7 @@ Run : `pnpm test:int` → **PASS** (nécessite la base up + migrée + `.env`).
 - [ ] **Step 7 : Commit**
 
 ```bash
-git add src/globals src/payload.config.ts src/payload-types.ts src/migrations "src/app/(payload)" tests/unit/globals-shape.test.ts tests/integration
+git add src/infrastructure/cms/payload/globals src/infrastructure/cms/payload/payload.config.ts src/infrastructure/cms/payload/payload-types.ts src/infrastructure/cms/payload/migrations "src/app/(payload)" tests/unit/infrastructure/cms/globals-shape.test.ts tests/integration
 git commit -m "feat(cms): add Site and Cinematic globals, full Payload config, initial migration and integration tests"
 ```
 
@@ -1583,20 +1930,20 @@ git commit -m "feat(cms): add Site and Cinematic globals, full Payload config, i
 ## Task 6 : i18n (next-intl), layout racine, polices, 404
 
 **Files :**
-- Create : `src/i18n/namespaces.ts`, `src/i18n/routing.ts`, `src/i18n/request.ts`, `src/i18n/navigation.ts`, `src/proxy.ts`, `src/app/(site)/[locale]/layout.tsx`, `src/app/(site)/[locale]/not-found.tsx`, `src/app/(site)/[locale]/[...rest]/page.tsx`, `src/messages/{fr,en}/{common,nav,hero,about,services,stack,projects,journey,process,contact,footer,errors}.json` (24 fichiers ; `common` et `errors` remplis ici, **les 10 autres = `{}`** que leur tâche propriétaire remplace), `tests/unit/i18n-parity.test.ts`, `tests/unit/routing.test.ts`
+- Create : `src/presentation/i18n/namespaces.ts`, `src/presentation/i18n/routing.ts`, `src/presentation/i18n/request.ts`, `src/presentation/i18n/navigation.ts`, `src/proxy.ts`, `src/app/(site)/[locale]/layout.tsx`, `src/app/(site)/[locale]/not-found.tsx`, `src/app/(site)/[locale]/[...rest]/page.tsx`, `src/presentation/i18n/messages/{fr,en}/{common,nav,hero,about,services,stack,projects,journey,process,contact,footer,errors}.json` (24 fichiers ; `common` et `errors` remplis ici, **les 10 autres = `{}`** que leur tâche propriétaire remplace), `tests/unit/presentation/i18n/i18n-parity.test.ts`, `tests/unit/presentation/i18n/routing.test.ts`
 - Modify : `next.config.ts` (remettre `withNextIntl` si retiré en T1)
 
 **Interfaces :**
-- Produces : `NAMESPACES` (les 12 noms du contrat) ; `routing` (`locales ['fr','en']`, défaut `fr`, `localePrefix 'always'`) ; `type AppLocale` ; `Link`, `redirect`, `usePathname`, `useRouter`, `getPathname` depuis `@/i18n/navigation` ; layout qui pose `<html lang>`, polices `--font-outfit`/`--font-work-sans`, `<RefractionFlag/>`, `<GlassFilters/>`, `NextIntlClientProvider`, lien d'évitement ; `generateStaticParams` sur les locales
+- Produces : `NAMESPACES` (les 12 noms du contrat) ; `routing` (`locales ['fr','en']`, défaut `fr`, `localePrefix 'always'`) ; `type AppLocale` ; `Link`, `redirect`, `usePathname`, `useRouter`, `getPathname` depuis `@/presentation/i18n/navigation` ; layout qui pose `<html lang>`, polices `--font-outfit`/`--font-work-sans`, `<RefractionFlag/>`, `<GlassFilters/>`, `NextIntlClientProvider`, lien d'évitement ; `generateStaticParams` sur les locales
 - Clés `common` : `skipToContent`, `siteName`, `metaTitle`, `metaDescription`, `language.fr`, `language.en`, `language.switch` ; clés `errors` : `notFoundTitle`, `notFoundText`, `backHome`, `generic`, `required`, `emailInvalid`, `tooShort`, `tooLong`
 
 - [ ] **Step 1 : Tests (échouent)**
 
-`tests/unit/routing.test.ts` :
+`tests/unit/presentation/i18n/routing.test.ts` :
 ```ts
 import { describe, expect, it } from 'vitest'
-import { routing } from '@/i18n/routing'
-import { NAMESPACES } from '@/i18n/namespaces'
+import { routing } from '@/presentation/i18n/routing'
+import { NAMESPACES } from '@/presentation/i18n/namespaces'
 
 describe('routing', () => {
   it('fr par défaut, en disponible, préfixe toujours', () => {
@@ -1609,21 +1956,21 @@ describe('routing', () => {
   })
 })
 ```
-`tests/unit/i18n-parity.test.ts` :
+`tests/unit/presentation/i18n/i18n-parity.test.ts` :
 ```ts
 import { readdirSync, readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { NAMESPACES } from '@/i18n/namespaces'
+import { NAMESPACES } from '@/presentation/i18n/namespaces'
 
-const read = (l: string, ns: string) => JSON.parse(readFileSync(`src/messages/${l}/${ns}.json`, 'utf8')) as Record<string, unknown>
+const read = (l: string, ns: string) => JSON.parse(readFileSync(`src/presentation/i18n/messages/${l}/${ns}.json`, 'utf8')) as Record<string, unknown>
 const flatten = (o: Record<string, unknown>, p = ''): Array<[string, unknown]> =>
   Object.entries(o).flatMap(([k, v]) => (v && typeof v === 'object' ? flatten(v as Record<string, unknown>, `${p}${k}.`) : [[`${p}${k}`, v] as [string, unknown]]))
 
 describe('parité des messages FR/EN', () => {
   it('mêmes fichiers dans fr/ et en/, exactement les namespaces du contrat', () => {
     const expected = [...NAMESPACES].map((n) => `${n}.json`).sort()
-    expect(readdirSync('src/messages/fr').sort()).toEqual(expected)
-    expect(readdirSync('src/messages/en').sort()).toEqual(expected)
+    expect(readdirSync('src/presentation/i18n/messages/fr').sort()).toEqual(expected)
+    expect(readdirSync('src/presentation/i18n/messages/en').sort()).toEqual(expected)
   })
   it.each([...NAMESPACES])('%s : mêmes clés, aucune chaîne vide', (ns) => {
     const fr = flatten(read('fr', ns))
@@ -1637,19 +1984,20 @@ Run → **FAIL**.
 
 - [ ] **Step 2 : Implémenter i18n**
 
-`src/i18n/namespaces.ts` :
+`src/presentation/i18n/namespaces.ts` :
 ```ts
 export const NAMESPACES = ['common', 'nav', 'hero', 'about', 'services', 'stack', 'projects', 'journey', 'process', 'contact', 'footer', 'errors'] as const
 export type Namespace = (typeof NAMESPACES)[number]
 ```
-`src/i18n/routing.ts` :
+`src/presentation/i18n/routing.ts` :
 ```ts
 import { defineRouting } from 'next-intl/routing'
+import { DEFAULT_LOCALE, LOCALES } from '@/domain'
 
-export const routing = defineRouting({ locales: ['fr', 'en'], defaultLocale: 'fr', localePrefix: 'always' })
+export const routing = defineRouting({ locales: [...LOCALES], defaultLocale: DEFAULT_LOCALE, localePrefix: 'always' })
 export type AppLocale = (typeof routing.locales)[number]
 ```
-`src/i18n/request.ts` :
+`src/presentation/i18n/request.ts` :
 ```ts
 import { hasLocale } from 'next-intl'
 import { getRequestConfig } from 'next-intl/server'
@@ -1660,12 +2008,12 @@ export default getRequestConfig(async ({ requestLocale }) => {
   const requested = await requestLocale
   const locale = hasLocale(routing.locales, requested) ? requested : routing.defaultLocale
   const entries = await Promise.all(
-    NAMESPACES.map(async (ns) => [ns, (await import(`../messages/${locale}/${ns}.json`)).default] as const),
+    NAMESPACES.map(async (ns) => [ns, (await import(`./messages/${locale}/${ns}.json`)).default] as const),
   )
   return { locale, messages: Object.fromEntries(entries) }
 })
 ```
-`src/i18n/navigation.ts` :
+`src/presentation/i18n/navigation.ts` :
 ```ts
 import { createNavigation } from 'next-intl/navigation'
 import { routing } from './routing'
@@ -1675,7 +2023,7 @@ export const { Link, redirect, usePathname, useRouter, getPathname } = createNav
 `src/proxy.ts` (Next 16 : `middleware` → `proxy`) :
 ```ts
 import createMiddleware from 'next-intl/middleware'
-import { routing } from './i18n/routing'
+import { routing } from './presentation/i18n/routing'
 
 export default createMiddleware(routing)
 
@@ -1719,10 +2067,10 @@ import { Outfit, Work_Sans } from 'next/font/google'
 import { notFound } from 'next/navigation'
 import { hasLocale, NextIntlClientProvider } from 'next-intl'
 import { getMessages, getTranslations, setRequestLocale } from 'next-intl/server'
-import { GlassFilters } from '@/components/glass/GlassFilters'
-import { RefractionFlag } from '@/components/glass/RefractionFlag'
-import { routing } from '@/i18n/routing'
-import '@/styles/globals.css'
+import { GlassFilters } from '@/presentation/components/glass/GlassFilters'
+import { RefractionFlag } from '@/presentation/components/glass/RefractionFlag'
+import { routing } from '@/presentation/i18n/routing'
+import '@/presentation/styles/globals.css'
 
 const outfit = Outfit({ subsets: ['latin'], variable: '--font-outfit', display: 'swap' })
 const workSans = Work_Sans({ subsets: ['latin'], variable: '--font-work-sans', display: 'swap' })
@@ -1766,7 +2114,7 @@ export default async function LocaleLayout({ children, params }: { children: Rea
 }
 ```
 `src/app/(site)/[locale]/[...rest]/page.tsx` : `import { notFound } from 'next/navigation'` ; `export default function CatchAll() { notFound() }`.
-`src/app/(site)/[locale]/not-found.tsx` : composant serveur, titre `errors.notFoundTitle`, texte, lien `backHome` vers `/` (via `Link` de `@/i18n/navigation`), rendu dans une carte `<Glass>` centrée (`min-h-dvh`), `<main id="main">`.
+`src/app/(site)/[locale]/not-found.tsx` : composant serveur, titre `errors.notFoundTitle`, texte, lien `backHome` vers `/` (via `Link` de `@/presentation/i18n/navigation`), rendu dans une carte `<Glass>` centrée (`min-h-dvh`), `<main id="main">`.
 
 - [ ] **Step 4 : Vérifier**
 
@@ -1775,223 +2123,410 @@ Run : `pnpm test` → **PASS** ; `pnpm typecheck && pnpm lint` verts ; `pnpm bui
 - [ ] **Step 5 : Commit**
 
 ```bash
-git add src/i18n src/proxy.ts "src/app/(site)" src/messages next.config.ts tests/unit/i18n-parity.test.ts tests/unit/routing.test.ts
+git add src/presentation/i18n src/proxy.ts "src/app/(site)" src/presentation/i18n/messages next.config.ts tests/unit/presentation/i18n/i18n-parity.test.ts tests/unit/presentation/i18n/routing.test.ts
 git commit -m "feat(i18n): add next-intl routing, per-namespace messages, root layout with fonts and 404"
 ```
 
 ---
 
-## Task 7 : Couche contenu — types, mappers, stats, formats, requêtes
+## Task 7 : Domaine, cas d'usage et adaptateur Payload — lecture du contenu
 
 **Files :**
-- Create : `src/lib/content/types.ts`, `src/lib/content/mappers.ts`, `src/lib/content/stats.ts`, `src/lib/content/format.ts`, `src/lib/content/queries.ts`
-- Test : `tests/unit/mappers.test.ts`, `tests/unit/stats.test.ts`, `tests/unit/format.test.ts`
+- Create (domain) : `src/domain/media.ts`, `src/domain/project/project.ts`, `src/domain/service/service.ts`, `src/domain/experience/experience.ts`, `src/domain/site/site-profile.ts`, `src/domain/site/cinematic-media.ts`, `src/domain/career/career-stats.ts`, `src/domain/stack/group-stacks.ts`
+- Modify : `src/domain/index.ts` (barrel : exporte les modules ci-dessus)
+- Create (application) : `src/application/ports/portfolio-repository.ts`, `src/application/ports/clock.ts`, `src/application/portfolio/{home-page,get-site-profile,get-home-page,get-project-page,list-project-refs}.ts`
+- Create (infrastructure) : `src/infrastructure/cms/payload/mappers/{media,stack,project,service,experience,site,cinematic,index}.ts`, `src/infrastructure/cms/payload/payload-portfolio-repository.ts`, `src/infrastructure/system/system-clock.ts`
+- Create (composition) : `src/composition/portfolio.ts`, `src/composition/index.ts`
+- Create (presentation) : `src/presentation/lib/format-date.ts`
+- Create (tests) : `tests/support/{builders,in-memory-portfolio-repository,fixed-clock}.ts`, `tests/unit/domain/{group-stacks,career-stats}.test.ts`, `tests/unit/application/{get-home-page,get-project-page,get-site-profile,list-project-refs}.test.ts`, `tests/unit/infrastructure/cms/mappers.test.ts`, `tests/unit/presentation/format-date.test.ts`, `tests/integration/portfolio.int.test.ts`
 
 **Interfaces :**
-- Consumes : types générés `@/payload-types` (T5) ; `resolveStackIcon`, `StackIcon` (T3) ; `Locale` (T4)
-- Produces (**noms et formes exacts** ; consommés par toutes les sections) dans `types.ts` :
-
+- Consumes : `Locale`, `Result` (T1) ; `slugify`, `SERVICE_ICON_NAMES`/`ServiceIconName`, `Stack`/`StackCategory`/`StackIcon`/`STACK_CATEGORIES` (T3) ; `resolveStackIcon` (infra, T3) ; types générés `@/infrastructure/cms/payload/payload-types` (T5)
+- Produces — **domaine** (types `readonly`, exportés via `@/domain`) :
 ```ts
-import type { StackIcon } from '@/lib/icons'
-import type { ServiceIconName } from '@/lib/icon-names'
-import type { Locale } from '@/hooks/revalidate'
+// media.ts
+export type MediaAsset = { readonly url: string; readonly alt: string; readonly width: number | null; readonly height: number | null; readonly mimeType: string | null }
 
-export type { Locale }
-export type StackCategory = 'language' | 'frontend' | 'backend' | 'architecture' | 'testing' | 'devops' | 'security' | 'ai'
-export type MediaVM = { url: string; alt: string; width: number | null; height: number | null; mimeType: string | null }
-export type StackVM = { id: string; name: string; slug: string; category: StackCategory; featured: boolean; icon: StackIcon }
-export type ProjectCardVM = {
-  id: string; slug: string; title: string; tagline: string; cover: MediaVM | null
-  year: number | null; client: string | null; featured: boolean; stacks: StackVM[]; stackSlugs: string[]
+// project/project.ts
+export type RichTextDocument = { readonly root: Readonly<Record<string, unknown>> } // opaque : seule la présentation sait le rendre
+export type ProjectLinks = { readonly live: string | null; readonly repo: string | null; readonly caseStudyUrl: string | null }
+export type ProjectSummary = {
+  readonly id: string; readonly slug: string; readonly title: string; readonly tagline: string; readonly cover: MediaAsset | null
+  readonly year: number | null; readonly client: string | null; readonly featured: boolean
+  readonly stacks: readonly Stack[]; readonly stackSlugs: readonly string[]
 }
-export type ProjectVM = ProjectCardVM & {
-  summary: string
-  caseStudy: import('@payloadcms/richtext-lexical/lexical').SerializedEditorState | null
-  gallery: MediaVM[]
-  links: { live: string | null; repo: string | null; caseStudyUrl: string | null }
+export type Project = ProjectSummary & { readonly summary: string; readonly caseStudy: RichTextDocument | null; readonly gallery: readonly MediaAsset[]; readonly links: ProjectLinks }
+export type ProjectRef = { readonly slug: string; readonly updatedAt: string }
+
+// service/service.ts
+export type ServiceTint = 'amber' | 'violet' | 'blue' | 'teal'
+export type Service = { readonly id: string; readonly title: string; readonly description: string; readonly icon: ServiceIconName; readonly tint: ServiceTint }
+
+// experience/experience.ts
+export type ExperienceKind = 'work' | 'education'
+export type Experience = {
+  readonly id: string; readonly kind: ExperienceKind; readonly role: string; readonly organization: string; readonly location: string | null
+  readonly start: string; readonly end: string | null; readonly summary: string; readonly highlights: readonly string[]; readonly stacks: readonly Stack[]
 }
-export type ServiceVM = { id: string; title: string; description: string; icon: ServiceIconName; tint: 'amber' | 'violet' | 'blue' | 'teal' }
-export type ExperienceVM = {
-  id: string; kind: 'work' | 'education'; role: string; organization: string; location: string | null
-  start: string; end: string | null; summary: string; highlights: string[]; stacks: StackVM[]
+
+// site/site-profile.ts
+export type LabeledValue = { readonly value: string; readonly label: string }
+export type SiteProfile = {
+  readonly name: string; readonly jobTitle: string; readonly tagline: string; readonly location: string
+  readonly hero: { readonly eyebrow: string; readonly rotatingTitles: readonly string[]; readonly ctaPrimary: string; readonly ctaSecondary: string; readonly chips: readonly LabeledValue[]; readonly trustedByTitle: string; readonly trustedBy: readonly { readonly name: string; readonly url: string | null }[] }
+  readonly about: { readonly headline: string; readonly bio: string; readonly autoStats: boolean; readonly stats: readonly LabeledValue[] }
+  readonly process: { readonly headline: string; readonly steps: readonly { readonly title: string; readonly text: string }[] }
+  readonly contact: { readonly email: string | null; readonly phone: string | null; readonly showPhone: boolean; readonly linkedin: string | null; readonly github: string | null }
+  readonly cv: { readonly fullstack: MediaAsset | null; readonly ai: MediaAsset | null }
+  readonly seo: { readonly title: string; readonly description: string; readonly ogImage: MediaAsset | null }
 }
-export type StatVM = { value: string; label: string }
-export type SiteVM = {
-  name: string; jobTitle: string; tagline: string; location: string
-  hero: { eyebrow: string; rotatingTitles: string[]; ctaPrimary: string; ctaSecondary: string; chips: StatVM[]; trustedByTitle: string; trustedBy: { name: string; url: string | null }[] }
-  about: { headline: string; bio: string; autoStats: boolean; stats: StatVM[] }
-  process: { headline: string; steps: { title: string; text: string }[] }
-  contact: { email: string | null; phone: string | null; showPhone: boolean; linkedin: string | null; github: string | null }
-  cv: { fullstack: MediaVM | null; ai: MediaVM | null }
-  seo: { title: string; description: string; ogImage: MediaVM | null }
+
+// site/cinematic-media.ts
+export type VideoPair = { readonly mp4: MediaAsset | null; readonly webm: MediaAsset | null }
+export type CinematicMedia = {
+  readonly avatarModel: MediaAsset | null; readonly avatarPortrait: MediaAsset | null; readonly heroPoster: MediaAsset | null
+  readonly heroVideoDesktop: VideoPair; readonly heroVideoMobile: VideoPair; readonly scrubVideo: MediaAsset | null
 }
-export type VideoPairVM = { mp4: MediaVM | null; webm: MediaVM | null }
-export type CinematicVM = {
-  avatarModel: MediaVM | null; avatarPortrait: MediaVM | null; heroPoster: MediaVM | null
-  heroVideoDesktop: VideoPairVM; heroVideoMobile: VideoPairVM; scrubVideo: MediaVM | null
-}
-export type HomeData = { site: SiteVM; cinematic: CinematicVM; services: ServiceVM[]; stacks: StackVM[]; projects: ProjectCardVM[]; experiences: ExperienceVM[] }
+
+// career/career-stats.ts
+export type CareerStats = { readonly years: number; readonly experiences: number; readonly technologies: number; readonly projects: number }
+export function computeCareerStats(input: { experiences: readonly Pick<Experience, 'kind' | 'start'>[]; projectsCount: number; stacksCount: number; now: Date }): CareerStats
+
+// stack/group-stacks.ts
+export type StackGroup = { readonly category: StackCategory; readonly stacks: readonly Stack[] }
+export function groupStacksByCategory(stacks: readonly Stack[]): StackGroup[]   // ordre = STACK_CATEGORIES ; catégories vides omises ; ordre d'entrée conservé
 ```
-- `mappers.ts` : `toMediaVM(m: unknown): MediaVM | null` (renvoie `null` si `m` est un id non peuplé ou sans `url`) · `toStackVM(s: unknown): StackVM | null` · `toProjectCardVM(p: Project): ProjectCardVM` · `toProjectVM(p: Project): ProjectVM` · `toServiceVM(s: Service): ServiceVM` · `toExperienceVM(e: Experience): ExperienceVM` · `toSiteVM(g: Site): SiteVM` · `toCinematicVM(g: Cinematic): CinematicVM` · `STACK_CATEGORY_ORDER: StackCategory[]` · `groupStacksByCategory(stacks: StackVM[]): Array<{ category: StackCategory; stacks: StackVM[] }>` (ordre fixe, catégories vides omises)
-- `stats.ts` : `computeStatValues(input: { experiences: Array<{ kind: 'work' | 'education'; start: string }>; projectsCount: number; stacksCount: number; now: Date }): { years: number; experiences: number; technologies: number; projects: number }`
-- `format.ts` : `formatMonth(iso: string, locale: Locale): string` · `formatRange(start: string, end: string | null, locale: Locale, nowLabel: string): string`
-- `queries.ts` (`import 'server-only'`) : `getSite(locale)`, `getCinematic()`, `getServices(locale)`, `getStacks(locale)`, `getProjects(locale)`, `getProject(locale, slug)`, `getProjectSlugs()`, `getExperiences(locale)`, `getHomeData(locale): Promise<HomeData>`
+- Produces — **application** :
+```ts
+// ports/clock.ts
+export interface Clock { now(): number } // millisecondes epoch
 
-- [ ] **Step 1 : Tests qui échouent**
+// ports/portfolio-repository.ts
+export interface PortfolioRepository {
+  getSite(locale: Locale): Promise<SiteProfile>
+  getCinematic(): Promise<CinematicMedia>
+  getServices(locale: Locale): Promise<Service[]>
+  getStacks(locale: Locale): Promise<Stack[]>
+  getProjectSummaries(locale: Locale): Promise<ProjectSummary[]>
+  getProjectBySlug(locale: Locale, slug: string): Promise<Project | null>
+  getProjectRefs(): Promise<ProjectRef[]>
+  getExperiences(locale: Locale): Promise<Experience[]>
+}
 
-`tests/unit/stats.test.ts` :
+// portfolio/home-page.ts
+export type HomePage = { readonly site: SiteProfile; readonly cinematic: CinematicMedia; readonly services: readonly Service[]; readonly stacks: readonly Stack[]; readonly projects: readonly ProjectSummary[]; readonly experiences: readonly Experience[]; readonly stats: CareerStats }
+
+// cas d'usage — chacun : constructor(portfolio[, clock]) + execute(...)
+GetSiteProfile.execute(locale: Locale): Promise<SiteProfile>
+GetHomePage.execute(locale: Locale): Promise<HomePage>                 // constructor(portfolio, clock)
+GetProjectPage.execute(input: { locale: Locale; slug: string }): Promise<ProjectPage | null>
+//   ProjectPage = { project: Project; previous: ProjectSummary | null; next: ProjectSummary | null }  (portfolio/get-project-page.ts)
+ListProjectRefs.execute(): Promise<ProjectRef[]>
+```
+- Produces — **infrastructure** : `class PayloadPortfolioRepository implements PortfolioRepository { constructor(client: () => Promise<Payload>) }` ; `class SystemClock implements Clock` ; mappers `mapMedia(m: unknown): MediaAsset | null`, `mapStack(s: unknown): Stack | null`, `mapProjectSummary(p: ProjectDoc): ProjectSummary`, `mapProject(p: ProjectDoc): Project`, `mapService(s: ServiceDoc): Service`, `mapExperience(e: ExperienceDoc): Experience`, `mapSite(g: SiteDoc): SiteProfile` (**n'expose jamais `contactTo`**), `mapCinematic(g: CinematicDoc): CinematicMedia`.
+- Produces — **composition** : `getPortfolioUseCases(): { getSiteProfile: GetSiteProfile; getHomePage: GetHomePage; getProjectPage: GetProjectPage; listProjectRefs: ListProjectRefs }` (mémoïsé, `import 'server-only'`) dans `src/composition/portfolio.ts`, ré-exporté par `src/composition/index.ts`.
+- Produces — **présentation** : `formatMonth(iso: string, locale: Locale): string`, `formatRange(start: string, end: string | null, locale: Locale, nowLabel: string): string` dans `src/presentation/lib/format-date.ts`.
+
+- [ ] **Step 1 : Tests du domaine (échouent)**
+
+`tests/unit/domain/career-stats.test.ts` :
 ```ts
 import { describe, expect, it } from 'vitest'
-import { computeStatValues } from '@/lib/content/stats'
+import { computeCareerStats } from '@/domain'
 
 const NOW = new Date('2026-09-30T00:00:00Z')
 
-describe('computeStatValues', () => {
-  it("années = plancher des années depuis la plus ancienne expérience 'work'", () => {
-    const r = computeStatValues({ experiences: [{ kind: 'work', start: '2024-10-01' }, { kind: 'work', start: '2023-02-01' }, { kind: 'education', start: '2019-09-01' }], projectsCount: 5, stacksCount: 34, now: NOW })
-    expect(r.years).toBe(3)
-    expect(r.experiences).toBe(2)
-    expect(r.technologies).toBe(34)
-    expect(r.projects).toBe(5)
+describe('computeCareerStats', () => {
+  it("compte les années depuis la plus ancienne expérience 'work'", () => {
+    const stats = computeCareerStats({
+      experiences: [{ kind: 'work', start: '2024-10-01' }, { kind: 'work', start: '2023-02-01' }, { kind: 'education', start: '2019-09-01' }],
+      projectsCount: 5, stacksCount: 34, now: NOW,
+    })
+    expect(stats).toEqual({ years: 3, experiences: 2, technologies: 34, projects: 5 })
   })
-  it('sans expérience work → 0 année', () => {
-    expect(computeStatValues({ experiences: [], projectsCount: 0, stacksCount: 0, now: NOW }).years).toBe(0)
+
+  it("renvoie 0 année sans expérience 'work'", () => {
+    expect(computeCareerStats({ experiences: [], projectsCount: 0, stacksCount: 0, now: NOW }).years).toBe(0)
   })
 })
 ```
-`tests/unit/format.test.ts` :
+`tests/unit/domain/group-stacks.test.ts` :
 ```ts
 import { describe, expect, it } from 'vitest'
-import { formatMonth, formatRange } from '@/lib/content/format'
+import { groupStacksByCategory, type Stack } from '@/domain'
 
-describe('format', () => {
-  it('mois court localisé', () => {
-    expect(formatMonth('2024-10-01', 'fr')).toMatch(/oct\.? 2024/i)
-    expect(formatMonth('2024-10-01', 'en')).toMatch(/oct(ober)? 2024/i)
-  })
-  it('plage avec fin', () => {
-    expect(formatRange('2023-10-01', '2024-09-01', 'fr', 'Aujourd’hui')).toMatch(/oct\.? 2023.+sept\.? 2024/i)
-  })
-  it("plage en cours utilise le libellé fourni", () => {
-    expect(formatRange('2024-10-01', null, 'fr', 'Aujourd’hui')).toMatch(/Aujourd’hui$/)
-  })
+const aStack = (slug: string, category: Stack['category']): Stack => ({
+  id: slug, name: slug, slug, category, featured: false, icon: { kind: 'monogram', letters: 'X' },
 })
-```
-`tests/unit/mappers.test.ts` :
-```ts
-import { describe, expect, it } from 'vitest'
-import { groupStacksByCategory, toMediaVM, toServiceVM, toStackVM } from '@/lib/content/mappers'
-import type { StackVM } from '@/lib/content/types'
 
-describe('toMediaVM', () => {
-  it('null pour un id non peuplé ou un objet sans url', () => {
-    expect(toMediaVM(12)).toBeNull()
-    expect(toMediaVM({ id: 1 })).toBeNull()
-    expect(toMediaVM(null)).toBeNull()
-  })
-  it('mappe un média peuplé', () => {
-    expect(toMediaVM({ url: '/api/media/file/a.webp', alt: 'A', width: 10, height: 20, mimeType: 'image/webp' })).toEqual({ url: '/api/media/file/a.webp', alt: 'A', width: 10, height: 20, mimeType: 'image/webp' })
-  })
-})
-describe('toStackVM', () => {
-  it('résout une icône Simple Icons et convertit l’id en string', () => {
-    const s = toStackVM({ id: 7, name: 'Docker', slug: 'docker', category: 'devops', featured: true, icon: { simpleIconSlug: 'docker' } })
-    expect(s?.id).toBe('7')
-    expect(s?.icon.kind).toBe('simple')
-  })
-  it('ignore un stack non peuplé (id numérique)', () => {
-    expect(toStackVM(3)).toBeNull()
-  })
-})
-describe('toServiceVM', () => {
-  it('mappe les champs', () => {
-    expect(toServiceVM({ id: 1, title: 'T', description: 'D', icon: 'bot', tint: 'blue' } as never)).toEqual({ id: '1', title: 'T', description: 'D', icon: 'bot', tint: 'blue' })
-  })
-})
 describe('groupStacksByCategory', () => {
-  const mk = (slug: string, category: StackVM['category']): StackVM => ({ id: slug, name: slug, slug, category, featured: false, icon: { kind: 'monogram', letters: 'X' } })
-  it("respecte l'ordre fixe et omet les catégories vides", () => {
-    const groups = groupStacksByCategory([mk('a', 'devops'), mk('b', 'language'), mk('c', 'language')])
+  it("respecte l'ordre des catégories, omet les vides et garde l'ordre d'entrée", () => {
+    const groups = groupStacksByCategory([aStack('a', 'devops'), aStack('b', 'language'), aStack('c', 'language')])
     expect(groups.map((g) => g.category)).toEqual(['language', 'devops'])
     expect(groups[0]!.stacks.map((s) => s.slug)).toEqual(['b', 'c'])
   })
+
+  it('renvoie une liste vide sans stack', () => {
+    expect(groupStacksByCategory([])).toEqual([])
+  })
 })
 ```
-Run → **FAIL**.
-
-- [ ] **Step 2 : Implémenter**
-
-`stats.ts` :
+Run → **FAIL**. Implémenter :
+`src/domain/career/career-stats.ts` :
 ```ts
-export function computeStatValues(input: {
-  experiences: Array<{ kind: 'work' | 'education'; start: string }>
+import type { Experience } from '../experience/experience'
+
+export type CareerStats = { readonly years: number; readonly experiences: number; readonly technologies: number; readonly projects: number }
+
+const MONTHS_PER_YEAR = 12
+
+const monthsBetween = (from: Date, to: Date): number =>
+  Math.max(0, (to.getFullYear() - from.getUTCFullYear()) * MONTHS_PER_YEAR + (to.getMonth() - from.getUTCMonth()))
+
+export function computeCareerStats(input: {
+  experiences: readonly Pick<Experience, 'kind' | 'start'>[]
   projectsCount: number
   stacksCount: number
   now: Date
-}) {
+}): CareerStats {
   const work = input.experiences.filter((e) => e.kind === 'work')
-  const earliest = work.map((e) => new Date(e.start).getTime()).sort((a, b) => a - b)[0]
-  const months = earliest === undefined ? 0 : Math.max(0, (input.now.getFullYear() - new Date(earliest).getUTCFullYear()) * 12 + (input.now.getMonth() - new Date(earliest).getUTCMonth()))
-  return { years: Math.floor(months / 12), experiences: work.length, technologies: input.stacksCount, projects: input.projectsCount }
+  const starts = work.map((e) => new Date(e.start).getTime())
+  const years = starts.length === 0 ? 0 : Math.floor(monthsBetween(new Date(Math.min(...starts)), input.now) / MONTHS_PER_YEAR)
+  return { years, experiences: work.length, technologies: input.stacksCount, projects: input.projectsCount }
 }
 ```
-`format.ts` :
+`src/domain/stack/group-stacks.ts` :
 ```ts
-import type { Locale } from '@/hooks/revalidate'
+import { STACK_CATEGORIES, type Stack, type StackCategory } from './stack'
 
-export function formatMonth(iso: string, locale: Locale): string {
-  return new Intl.DateTimeFormat(locale, { month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(iso))
-}
-export function formatRange(start: string, end: string | null, locale: Locale, nowLabel: string): string {
-  return `${formatMonth(start, locale)} — ${end ? formatMonth(end, locale) : nowLabel}`
+export type StackGroup = { readonly category: StackCategory; readonly stacks: readonly Stack[] }
+
+export function groupStacksByCategory(stacks: readonly Stack[]): StackGroup[] {
+  return STACK_CATEGORIES.map((category) => ({ category, stacks: stacks.filter((s) => s.category === category) })).filter((g) => g.stacks.length > 0)
 }
 ```
-`mappers.ts` : implémenter les fonctions listées (résolution `depth`-safe : tout champ relationnel peut être un id `number` non peuplé → ignoré ; `id` → `String(id)` ; `year` → `number | null` ; `links` → `null` si vide ; `caseStudy` → `null` si absent ; `toSiteVM` accepte les groupes d'onglets nommés de T5 et **n'expose jamais `contactTo`** ; chaînes absentes → `''` ; `toCinematicVM` ne renvoie que des `MediaVM` peuplés).
-`queries.ts` : squelette imposé —
+Créer les autres fichiers du domaine (types ci-dessus, **aucun import hors `domain`**) et compléter `src/domain/index.ts`. Run : `pnpm test tests/unit/domain` → **PASS**.
+
+- [ ] **Step 2 : Fakes de test et tests des cas d'usage (échouent)**
+
+`tests/support/builders.ts` — fabriques minimales et lisibles : `aStack(over?)`, `aProjectSummary(over?)`, `aProject(over?)`, `aService(over?)`, `anExperience(over?)`, `aSiteProfile(over?)`, `aCinematicMedia(over?)` (chaque fabrique renvoie un objet **valide complet** du type domaine, `over` = `Partial<T>` fusionné).
+`tests/support/fixed-clock.ts` : `export const fixedClock = (iso: string): Clock => ({ now: () => new Date(iso).getTime() })`.
+`tests/support/in-memory-portfolio-repository.ts` :
+```ts
+import type { PortfolioRepository } from '@/application/ports/portfolio-repository'
+import type { CinematicMedia, Experience, Locale, Project, ProjectRef, ProjectSummary, Service, SiteProfile, Stack } from '@/domain'
+import { aCinematicMedia, aSiteProfile } from './builders'
+
+export class InMemoryPortfolioRepository implements PortfolioRepository {
+  constructor(private readonly data: {
+    site?: SiteProfile; cinematic?: CinematicMedia; services?: Service[]; stacks?: Stack[]
+    projects?: Project[]; experiences?: Experience[]
+  } = {}) {}
+
+  async getSite(_locale: Locale) { return this.data.site ?? aSiteProfile() }
+  async getCinematic() { return this.data.cinematic ?? aCinematicMedia() }
+  async getServices(_locale: Locale) { return this.data.services ?? [] }
+  async getStacks(_locale: Locale) { return this.data.stacks ?? [] }
+  async getProjectSummaries(_locale: Locale): Promise<ProjectSummary[]> { return this.data.projects ?? [] }
+  async getProjectBySlug(_locale: Locale, slug: string) { return (this.data.projects ?? []).find((p) => p.slug === slug) ?? null }
+  async getProjectRefs(): Promise<ProjectRef[]> { return (this.data.projects ?? []).map((p) => ({ slug: p.slug, updatedAt: '2026-01-01T00:00:00.000Z' })) }
+  async getExperiences(_locale: Locale) { return this.data.experiences ?? [] }
+}
+```
+`tests/unit/application/get-home-page.test.ts` :
+```ts
+import { describe, expect, it } from 'vitest'
+import { GetHomePage } from '@/application/portfolio/get-home-page'
+import { aProject, aService, aStack, anExperience } from '../../support/builders'
+import { fixedClock } from '../../support/fixed-clock'
+import { InMemoryPortfolioRepository } from '../../support/in-memory-portfolio-repository'
+
+describe('GetHomePage', () => {
+  it('assemble toutes les sections et calcule les statistiques de carrière', async () => {
+    const repo = new InMemoryPortfolioRepository({
+      services: [aService(), aService({ id: '2' })],
+      stacks: [aStack({ id: '1' }), aStack({ id: '2', slug: 'b' }), aStack({ id: '3', slug: 'c' })],
+      projects: [aProject({ id: '1', slug: 'a' }), aProject({ id: '2', slug: 'b' })],
+      experiences: [anExperience({ kind: 'work', start: '2023-02-01' })],
+    })
+
+    const home = await new GetHomePage(repo, fixedClock('2026-09-30T00:00:00Z')).execute('fr')
+
+    expect(home.services).toHaveLength(2)
+    expect(home.stats).toEqual({ years: 3, experiences: 1, technologies: 3, projects: 2 })
+  })
+})
+```
+`tests/unit/application/get-project-page.test.ts` : (1) slug inconnu → `null` ; (2) projet au milieu → `previous` et `next` corrects (ordre = `getProjectSummaries`) ; (3) premier projet → `previous: null` ; (4) dernier → `next: null` ; (5) projet seul → les deux `null`.
+`tests/unit/application/get-site-profile.test.ts` et `list-project-refs.test.ts` : chaque cas d'usage délègue au port et renvoie sa valeur (un test chacun).
+Run → **FAIL**. Implémenter :
+`src/application/portfolio/get-home-page.ts` :
+```ts
+import { computeCareerStats, type Locale } from '@/domain'
+import type { Clock } from '../ports/clock'
+import type { PortfolioRepository } from '../ports/portfolio-repository'
+import type { HomePage } from './home-page'
+
+export class GetHomePage {
+  constructor(private readonly portfolio: PortfolioRepository, private readonly clock: Clock) {}
+
+  async execute(locale: Locale): Promise<HomePage> {
+    const [site, cinematic, services, stacks, projects, experiences] = await Promise.all([
+      this.portfolio.getSite(locale),
+      this.portfolio.getCinematic(),
+      this.portfolio.getServices(locale),
+      this.portfolio.getStacks(locale),
+      this.portfolio.getProjectSummaries(locale),
+      this.portfolio.getExperiences(locale),
+    ])
+    const stats = computeCareerStats({ experiences, projectsCount: projects.length, stacksCount: stacks.length, now: new Date(this.clock.now()) })
+    return { site, cinematic, services, stacks, projects, experiences, stats }
+  }
+}
+```
+`src/application/portfolio/get-project-page.ts` :
+```ts
+import type { Locale, Project, ProjectSummary } from '@/domain'
+import type { PortfolioRepository } from '../ports/portfolio-repository'
+
+export type ProjectPage = { readonly project: Project; readonly previous: ProjectSummary | null; readonly next: ProjectSummary | null }
+
+export class GetProjectPage {
+  constructor(private readonly portfolio: PortfolioRepository) {}
+
+  async execute(input: { locale: Locale; slug: string }): Promise<ProjectPage | null> {
+    const project = await this.portfolio.getProjectBySlug(input.locale, input.slug)
+    if (!project) return null
+    const summaries = await this.portfolio.getProjectSummaries(input.locale)
+    const index = summaries.findIndex((p) => p.slug === project.slug)
+    if (index === -1) return { project, previous: null, next: null }
+    return { project, previous: summaries[index - 1] ?? null, next: summaries[index + 1] ?? null }
+  }
+}
+```
+`GetSiteProfile` et `ListProjectRefs` : classes d'une méthode qui délèguent au port. `HomePage` : type ci-dessus. Run : `pnpm test tests/unit/application` → **PASS**.
+
+- [ ] **Step 3 : Mappers Payload → domaine (tests d'abord)**
+
+`tests/unit/infrastructure/cms/mappers.test.ts` — écrire (et voir échouer) au minimum : `mapMedia` renvoie `null` pour un id non peuplé, un objet sans `url` ou `null`, et mappe un média peuplé ; `mapStack` convertit l'id en `string`, résout l'icône Simple Icons (`docker`), renvoie `null` pour un id non peuplé ; `mapService` copie les champs ; `mapProject` : `caseStudy` `null` si absent, `links` avec `null` par défaut, `stackSlugs` = slugs des stacks peuplés, stacks non peuplés ignorés ; `mapSite` : **n'expose pas `contactTo`** (`expect(site.contact).not.toHaveProperty('contactTo')`), chaînes absentes → `''`, CV non peuplés → `null` ; `mapCinematic` : slots non peuplés → `null`.
+Implémenter les mappers (un fichier par agrégat, fonctions courtes, **aucune logique métier**) en important les types Payload avec le suffixe `Doc` :
+```ts
+import type { Project as ProjectDoc } from '../payload-types'
+import type { Project, ProjectSummary } from '@/domain'
+```
+`mapMedia` accepte `unknown` (un champ `upload` est soit un id, soit un objet peuplé) ; toute relation non peuplée (`number`) est ignorée ; `id` → `String(id)`. Run → **PASS**.
+
+- [ ] **Step 4 : Adaptateur `PayloadPortfolioRepository`, horloge, composition**
+
+`src/infrastructure/cms/payload/payload-portfolio-repository.ts` — squelette imposé :
+```ts
+import type { Payload } from 'payload'
+import type { PortfolioRepository } from '@/application/ports/portfolio-repository'
+import type { Locale } from '@/domain'
+import { mapCinematic, mapExperience, mapProject, mapProjectSummary, mapService, mapSite, mapStack } from './mappers'
+
+/** L'API locale ignore l'access control par défaut : on force la lecture « visiteur » (publiés uniquement). */
+const PUBLIC_READ = { overrideAccess: false, draft: false } as const
+const LIST = { depth: 2, limit: 200, pagination: false, sort: 'order' } as const
+
+export class PayloadPortfolioRepository implements PortfolioRepository {
+  constructor(private readonly client: () => Promise<Payload>) {}
+  // getSite / getCinematic : findGlobal({ slug, locale, depth, ...PUBLIC_READ }) puis mapSite / mapCinematic
+  // getServices / getStacks / getExperiences / getProjectSummaries : find({ collection, locale, ...LIST, ...PUBLIC_READ }) puis map
+  // getProjectBySlug : find({ collection: 'projects', where: { slug: { equals: slug } }, limit: 1, ... }) → null si absent
+  // getProjectRefs : find({ collection: 'projects', depth: 0, select: { slug: true, updatedAt: true }, ...PUBLIC_READ })
+}
+```
+`src/infrastructure/system/system-clock.ts` : `export class SystemClock implements Clock { now(): number { return Date.now() } }`.
+`src/composition/portfolio.ts` :
 ```ts
 import 'server-only'
 import config from '@payload-config'
 import { getPayload } from 'payload'
-import type { CinematicVM, HomeData, Locale, ProjectCardVM, ProjectVM } from './types'
-import { toCinematicVM, toExperienceVM, toProjectCardVM, toProjectVM, toServiceVM, toSiteVM, toStackVM } from './mappers'
+import { GetHomePage } from '@/application/portfolio/get-home-page'
+import { GetProjectPage } from '@/application/portfolio/get-project-page'
+import { GetSiteProfile } from '@/application/portfolio/get-site-profile'
+import { ListProjectRefs } from '@/application/portfolio/list-project-refs'
+import { PayloadPortfolioRepository } from '@/infrastructure/cms/payload/payload-portfolio-repository'
+import { SystemClock } from '@/infrastructure/system/system-clock'
 
-/** L'API locale ignore l'access control par défaut : on force la lecture « visiteur ». */
-const PUBLIC = { overrideAccess: false, draft: false } as const
-const payload = () => getPayload({ config })
+export type PortfolioUseCases = {
+  readonly getSiteProfile: GetSiteProfile
+  readonly getHomePage: GetHomePage
+  readonly getProjectPage: GetProjectPage
+  readonly listProjectRefs: ListProjectRefs
+}
 
-export async function getSite(locale: Locale) {
-  return toSiteVM(await (await payload()).findGlobal({ slug: 'site', locale, depth: 2, ...PUBLIC }))
+let instance: PortfolioUseCases | undefined
+
+export function getPortfolioUseCases(): PortfolioUseCases {
+  instance ??= buildPortfolioUseCases()
+  return instance
 }
-export async function getCinematic(): Promise<CinematicVM> {
-  return toCinematicVM(await (await payload()).findGlobal({ slug: 'cinematic', depth: 1, ...PUBLIC }))
+
+function buildPortfolioUseCases(): PortfolioUseCases {
+  const portfolio = new PayloadPortfolioRepository(() => getPayload({ config }))
+  return {
+    getSiteProfile: new GetSiteProfile(portfolio),
+    getHomePage: new GetHomePage(portfolio, new SystemClock()),
+    getProjectPage: new GetProjectPage(portfolio),
+    listProjectRefs: new ListProjectRefs(portfolio),
+  }
 }
-// Le chemin 3D est testé en E2E sans média réel via `?__fixture=avatar` (côté client, voir HeroStage, T10) :
-// aucune branche de test côté serveur.
-// getServices / getStacks / getProjects / getProject / getProjectSlugs / getExperiences :
-//   payload.find({ collection, locale, depth: 2, limit: 200, pagination: false, sort: 'order', ...PUBLIC })
-//   getProject : where { slug: { equals: slug } }, limit 1 → null si absent.
-// getHomeData(locale) = Promise.all([...]) → HomeData.
 ```
-Run : `pnpm test` **PASS**, `pnpm typecheck` vert.
+`src/composition/index.ts` : `export * from './portfolio'`.
 
-- [ ] **Step 3 : Test d'intégration de lecture publique**
+- [ ] **Step 5 : Format de date (présentation) — tests d'abord**
 
-Ajouter `tests/integration/content.int.test.ts` : après `pnpm seed` (T8) `getHomeData('fr')` renvoie ≥ 4 services, ≥ 20 stacks, `projects` **sans brouillon** ; `getProject('fr','slug-inexistant')` = `null`. Le lancer **après T8** (marquer `describe.skipIf(!process.env.DATABASE_URI)`).
+`tests/unit/presentation/format-date.test.ts` :
+```ts
+import { describe, expect, it } from 'vitest'
+import { formatMonth, formatRange } from '@/presentation/lib/format-date'
 
-- [ ] **Step 4 : Commit**
+describe('format-date', () => {
+  it('formate un mois court localisé', () => {
+    expect(formatMonth('2024-10-01', 'fr')).toMatch(/oct\.? 2024/i)
+    expect(formatMonth('2024-10-01', 'en')).toMatch(/oct(ober)? 2024/i)
+  })
+  it('formate une plage terminée', () => {
+    expect(formatRange('2023-10-01', '2024-09-01', 'fr', 'Aujourd’hui')).toMatch(/oct\.? 2023.+sept\.? 2024/i)
+  })
+  it('utilise le libellé fourni pour une plage en cours', () => {
+    expect(formatRange('2024-10-01', null, 'fr', 'Aujourd’hui')).toMatch(/Aujourd’hui$/)
+  })
+})
+```
+`src/presentation/lib/format-date.ts` :
+```ts
+import type { Locale } from '@/domain'
+
+export function formatMonth(iso: string, locale: Locale): string {
+  return new Intl.DateTimeFormat(locale, { month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(iso))
+}
+
+export function formatRange(start: string, end: string | null, locale: Locale, nowLabel: string): string {
+  return `${formatMonth(start, locale)} — ${end ? formatMonth(end, locale) : nowLabel}`
+}
+```
+
+- [ ] **Step 6 : Test d'intégration (base réelle, à lancer APRÈS la Task 8)**
+
+`tests/integration/portfolio.int.test.ts` (`describe.skipIf(!process.env.DATABASE_URI)`) : avec `new PayloadPortfolioRepository(() => getPayload({ config }))` — `getProjectSummaries('fr')` ne contient **aucun brouillon** ; `getProjectBySlug('fr', 'slug-inexistant')` = `null` ; `new GetHomePage(repo, new SystemClock()).execute('fr')` → ≥ 4 services, ≥ 20 stacks, `stats.years` ≥ 3 ; `mapSite` du repo n'expose pas `contactTo`.
+
+- [ ] **Step 7 : Vérifier** — `pnpm test` **PASS** (dont `architecture.test.ts` : `domain` et `application` n'importent aucun paquet), `pnpm typecheck && pnpm lint` verts.
+
+- [ ] **Step 8 : Commit**
 
 ```bash
-git add src/lib/content tests/unit/mappers.test.ts tests/unit/stats.test.ts tests/unit/format.test.ts tests/integration/content.int.test.ts
-git commit -m "feat(content): add typed view models, mappers, stats, formatting and public read queries"
+git add src/domain src/application src/infrastructure/cms/payload/mappers src/infrastructure/cms/payload/payload-portfolio-repository.ts src/infrastructure/system src/composition src/presentation/lib/format-date.ts tests/support tests/unit/domain tests/unit/application tests/unit/infrastructure/cms/mappers.test.ts tests/unit/presentation/format-date.test.ts tests/integration/portfolio.int.test.ts
+git commit -m "feat(core): add domain entities, portfolio use cases, Payload repository adapter and composition root"
 ```
-
----
 
 ## Task 8 : Seed — contenu issu des CV (FR + EN), idempotent
 
 **Files :**
-- Create : `src/seed/run.ts`, `src/seed/upsert.ts`, `src/seed/lexical.ts`, `src/seed/data/site.ts`, `src/seed/data/services.ts`, `src/seed/data/stacks.ts`, `src/seed/data/experiences.ts`, `src/seed/data/projects.ts`, `src/seed/data/types.ts`
-- Test : `tests/unit/seed-data.test.ts`, `tests/unit/seed-lexical.test.ts`, `tests/integration/seed.int.test.ts`
+- Create : `src/infrastructure/seed/run.ts`, `src/infrastructure/seed/upsert.ts`, `src/infrastructure/seed/lexical.ts`, `src/infrastructure/seed/data/site.ts`, `src/infrastructure/seed/data/services.ts`, `src/infrastructure/seed/data/stacks.ts`, `src/infrastructure/seed/data/experiences.ts`, `src/infrastructure/seed/data/projects.ts`, `src/infrastructure/seed/data/types.ts`
+- Test : `tests/unit/infrastructure/seed/seed-data.test.ts`, `tests/unit/infrastructure/seed/seed-lexical.test.ts`, `tests/integration/seed.int.test.ts`
 
 **Interfaces :**
 - Consumes : collections/globals (T3–T5), `hasSimpleIcon` (T3), `STACK_CATEGORIES` (T3), `SERVICE_ICON_NAMES` (T3), `slugify` (T3)
@@ -1999,7 +2534,7 @@ git commit -m "feat(content): add typed view models, mappers, stats, formatting 
 
 **Règle de contenu :** uniquement des faits des CV (`img/CV_Denis_Bucspun_2026_FR.pdf`, `..._IA.pdf`). Le FR ci-dessous fait foi ; l'EN est une **traduction fidèle** (aucun fait ajouté). Aucun numéro de téléphone dans les fichiers de données.
 
-- [ ] **Step 1 : Types de données** — `src/seed/data/types.ts`
+- [ ] **Step 1 : Types de données** — `src/infrastructure/seed/data/types.ts`
 
 ```ts
 export type Loc<T> = { fr: T; en: T }
@@ -2012,18 +2547,16 @@ export type SeedProject = { slug: string; year: number; client: string; featured
 
 - [ ] **Step 2 : Tests de données qui échouent**
 
-`tests/unit/seed-data.test.ts` :
+`tests/unit/infrastructure/seed/seed-data.test.ts` :
 ```ts
 import { describe, expect, it } from 'vitest'
-import { STACK_CATEGORIES } from '@/collections/Stacks'
-import { SERVICE_ICON_NAMES } from '@/lib/icon-names'
-import { hasSimpleIcon } from '@/lib/icons'
-import { slugify } from '@/lib/slug'
-import { experiences } from '@/seed/data/experiences'
-import { projects } from '@/seed/data/projects'
-import { services } from '@/seed/data/services'
-import { site } from '@/seed/data/site'
-import { stacks } from '@/seed/data/stacks'
+import { SERVICE_ICON_NAMES, slugify, STACK_CATEGORIES } from '@/domain'
+import { hasSimpleIcon } from '@/infrastructure/icons/simple-icons-resolver'
+import { experiences } from '@/infrastructure/seed/data/experiences'
+import { projects } from '@/infrastructure/seed/data/projects'
+import { services } from '@/infrastructure/seed/data/services'
+import { site } from '@/infrastructure/seed/data/site'
+import { stacks } from '@/infrastructure/seed/data/stacks'
 
 const stackSlugs = new Set(stacks.map((s) => s.slug ?? slugify(s.name)))
 const strings = (o: unknown): string[] =>
@@ -2032,7 +2565,7 @@ const strings = (o: unknown): string[] =>
 describe('seed — stacks', () => {
   it('slugs uniques', () => expect(stackSlugs.size).toBe(stacks.length))
   it('catégories valides', () => {
-    const valid = new Set(STACK_CATEGORIES.map((c) => c.value))
+    const valid = new Set<string>(STACK_CATEGORIES)
     for (const s of stacks) expect(valid.has(s.category), s.name).toBe(true)
   })
   it('tout simpleIconSlug déclaré existe dans simple-icons (sinon retirer → monogramme)', () => {
@@ -2069,10 +2602,10 @@ describe('seed — contenu', () => {
   })
 })
 ```
-`tests/unit/seed-lexical.test.ts` :
+`tests/unit/infrastructure/seed/seed-lexical.test.ts` :
 ```ts
 import { describe, expect, it } from 'vitest'
-import { lexicalFromParagraphs } from '@/seed/lexical'
+import { lexicalFromParagraphs } from '@/infrastructure/seed/lexical'
 
 describe('lexicalFromParagraphs', () => {
   it('construit un état Lexical valide avec un paragraphe par texte', () => {
@@ -2085,7 +2618,7 @@ describe('lexicalFromParagraphs', () => {
 ```
 Run → **FAIL**.
 
-- [ ] **Step 3 : `src/seed/lexical.ts`**
+- [ ] **Step 3 : `src/infrastructure/seed/lexical.ts`**
 
 ```ts
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical'
@@ -2103,7 +2636,7 @@ export function lexicalFromParagraphs(paragraphs: string[]): SerializedEditorSta
 }
 ```
 
-- [ ] **Step 4 : Données — `src/seed/data/*.ts`** (FR ci-dessous = source ; EN = traduction fidèle)
+- [ ] **Step 4 : Données — `src/infrastructure/seed/data/*.ts`** (FR ci-dessous = source ; EN = traduction fidèle)
 
 **`site.ts`** — export `site` :
 - `identity` : `name: 'Denis Bucspun'`, `location: 'Nanterre, France'`, `jobTitle` FR `Développeur Full Stack` / EN `Full Stack Developer`, `tagline` FR « Je conçois des applications web et mobiles solides, de l’idée au déploiement, avec une vraie exigence d’architecture, de tests et de qualité logicielle. »
@@ -2130,11 +2663,11 @@ export function lexicalFromParagraphs(paragraphs: string[]): SerializedEditorSta
 **`experiences.ts`** — `bouygues` : `work`, « Bouygues Telecom Business Solutions », lieu « Île-de-France », `2024-10-01` → `2026-10-01`, ordre 1, rôle « Développeur Full Stack & DevOps (alternance) », résumé « Conception et développement de solutions internes dans un contexte Logiciel & IA, de l’idée/prototype jusqu’au déploiement et au run. », highlights (6, du CV) : produit pré-pilote avec API externes (Google Places, OpenStreetMap Overpass, Microsoft Graph) · backend .NET en cinq couches (DDD, hexagonale) · tests xUnit/NSubstitute et écarts de couverture documentés · frontend React Native/Expo/TypeScript (iOS, Android, web) sur API REST OAuth 2.0 PKCE + Entra ID SSO · Docker, Azure App Service / Static Web Apps, CI/CD GitHub Actions + Azure DevOps · solutions IA générative (LLM, agents, MCP, RAG, tool calling) avec Claude Code et Codex ; mémoire sur l’industrialisation logicielle. — `axima` : `work`, « Axima Concept », `2023-10-01` → `2024-09-01`, ordre 2, « Développeur Full Stack (alternance) », supervision Angular 12 / PrimeNG / Java en agile, maquettes Figma, échanges avec les utilisateurs. — `clamart` : `work`, « Ville de Clamart », `2023-02-01` → `2023-06-01`, ordre 3, « Développeur Full Stack », quiz Symfony/MySQL/JS/Tailwind/Twig, algorithmes de scoring, optimisation SQL, explications automatiques. — `iim` : `education`, « IIM Digital School — Pôle Léonard de Vinci », lieu « Paris », `2025-09-01` → `2026-09-01`, ordre 4, rôle « Master — Ingénierie Web & Innovation Digitale », résumé « Mémoire : De l’innovation interne à l’industrialisation logicielle — cadres qualité, dette technique et transition du prototype vers un logiciel maintenable. ».
 
 **`projects.ts`** — 5 projets (slug, année, client, stacks, `featured`) : `plateforme-interne-bouygues` (2024, « Bouygues Telecom Business Solutions », **featured**, stacks : react-native, expo, typescript, aspnet-core, entity-framework-core, csharp, docker, microsoft-azure, oauth-2-0, microsoft-entra-id, github-actions, azure-devops) « Plateforme interne web & mobile » ; `dywikis` (2022, « Projet personnel », **featured**, php, mysql, javascript) « Dywiki’s » ; `supervision-axima` (2023, « Axima Concept », **featured**, angular, primeng, java, figma) « Application de supervision » ; `quiz-ville-de-clamart` (2023, « Ville de Clamart », symfony, mysql, javascript, tailwind-css, twig) « Application de quiz » ; `ce-portfolio` (2026, « Projet personnel », **featured**, `repo: 'https://github.com/BDenisss/Portfolio2026-V2'`, next-js, react, typescript, payload-cms, tailwind-css, gsap, three-js, postgresql, docker) « Ce portfolio ». `tagline`/`summary`/`caseStudy` FR = reformulation **stricte** des puces du CV (voir Task 8 cadrage : Bouygues → 4 paragraphes backend / tests / frontend / delivery ; Dywiki’s → schéma BDD, PHP 8.1/MySQL/JS, API TMDB, indexation ; Axima → Angular 12/PrimeNG/Java, agile, maquettes Figma, échanges utilisateurs ; Clamart → Symfony, scoring frontend, SQL sous charge, explications auto ; portfolio → Next.js 16 + Payload, design Liquid Glass, hero cinématique GSAP/Lenis/react-three-fiber avec avatar Memoji 3D généré avec Higgsfield, contenu FR/EN administrable). Aucun chiffre ni résultat inventé.
-> Les slugs `stacks` = `s.slug ?? slugify(name)` (ex. `slugify('OAuth 2.0')` = `oauth-2-0`, `slugify('Next.js')` = `next-js` ; `slugify('C#')` donnerait `c` → d'où le `slug` explicite `csharp`). Le test `seed-data` détecte toute référence orpheline. `run.ts` et les tests utilisent la **même** fonction `stackSlug(s) = s.slug ?? slugify(s.name)` (à exporter de `src/seed/data/stacks.ts`).
+> Les slugs `stacks` = `s.slug ?? slugify(name)` (ex. `slugify('OAuth 2.0')` = `oauth-2-0`, `slugify('Next.js')` = `next-js` ; `slugify('C#')` donnerait `c` → d'où le `slug` explicite `csharp`). Le test `seed-data` détecte toute référence orpheline. `run.ts` et les tests utilisent la **même** fonction `stackSlug(s) = s.slug ?? slugify(s.name)` (à exporter de `src/infrastructure/seed/data/stacks.ts`).
 
 - [ ] **Step 5 : `upsert.ts` et `run.ts`**
 
-`src/seed/upsert.ts` :
+`src/infrastructure/seed/upsert.ts` :
 ```ts
 import type { CollectionSlug, Payload } from 'payload'
 
@@ -2158,7 +2691,7 @@ export async function upsertBySlug(
   return id
 }
 ```
-`src/seed/run.ts` — orchestrateur `async function main()` : `getPayload({ config })` → (1) médias CV : si `img/CV_Denis_Bucspun_2026_FR.pdf` et `..._IA.pdf` existent, `payload.create({ collection:'media', filePath, data:{ alt:'CV …' } })` **si pas déjà présents** (recherche par `filename`) ; (2) stacks (upsert par `slug = slugify(name)`) ; (3) services (clé = `key` stockée dans `slug`? → **non** : `services` n'a pas de slug ; faire `find` par `title` FR, sinon créer) ; idem experiences par `organization + start` ; (4) projets via `upsertBySlug` avec `_status: 'published'`, `stacks` = ids résolus, `caseStudy: lexicalFromParagraphs(...)` par locale ; (5) `payload.updateGlobal({ slug:'site', data, locale:'fr' })` puis `en` ; `contact.phone = process.env.SEED_PHONE || undefined` ; `cv.cvFullstack/cvAi` = ids des médias s'ils existent ; (6) `console.log` d'un récap ; `process.exit(0)`. Contexte `{ disableRevalidate: true }` partout.
+`src/infrastructure/seed/run.ts` — orchestrateur `async function main()` : `getPayload({ config })` → (1) médias CV : si `img/CV_Denis_Bucspun_2026_FR.pdf` et `..._IA.pdf` existent, `payload.create({ collection:'media', filePath, data:{ alt:'CV …' } })` **si pas déjà présents** (recherche par `filename`) ; (2) stacks (upsert par `slug = slugify(name)`) ; (3) services (clé = `key` stockée dans `slug`? → **non** : `services` n'a pas de slug ; faire `find` par `title` FR, sinon créer) ; idem experiences par `organization + start` ; (4) projets via `upsertBySlug` avec `_status: 'published'`, `stacks` = ids résolus, `caseStudy: lexicalFromParagraphs(...)` par locale ; (5) `payload.updateGlobal({ slug:'site', data, locale:'fr' })` puis `en` ; `contact.phone = process.env.SEED_PHONE || undefined` ; `cv.cvFullstack/cvAi` = ids des médias s'ils existent ; (6) `console.log` d'un récap ; `process.exit(0)`. Contexte `{ disableRevalidate: true }` partout.
 
 - [ ] **Step 6 : Test d'idempotence (base réelle)**
 
@@ -2171,7 +2704,7 @@ Run : `pnpm test` (données) **PASS** → `pnpm seed` (2 fois) → `pnpm test:in
 - [ ] **Step 8 : Commit**
 
 ```bash
-git add src/seed tests/unit/seed-data.test.ts tests/unit/seed-lexical.test.ts tests/integration/seed.int.test.ts
+git add src/infrastructure/seed tests/unit/infrastructure/seed/seed-data.test.ts tests/unit/infrastructure/seed/seed-lexical.test.ts tests/integration/seed.int.test.ts
 git commit -m "feat(seed): add idempotent FR/EN seed built from the CVs"
 ```
 
@@ -2180,29 +2713,29 @@ git commit -m "feat(seed): add idempotent FR/EN seed built from the CVs"
 ## Task 9 : Primitives UI, navigation, dock, footer, scroll, page shell
 
 **Files :**
-- Create : `src/lib/gsap.ts`, `src/components/ui/{Button,Magnetic,Chip,Eyebrow,SectionHeading,Section,Reveal,RevealController,Icon,LangSwitch,Nav,Dock,Footer,SmoothScroll,nav-items}.ts(x)`, `src/components/ui/use-active-section.ts`, `src/app/(site)/[locale]/(shell)/layout.tsx`, `src/app/(site)/[locale]/(shell)/page.tsx`, `src/messages/{fr,en}/{nav,footer}.json`
-- Create (**stubs remplacés par leur tâche propriétaire**) : `src/components/sections/{Hero,About,Services,Stack,Projects,Journey,Process,Contact}.tsx`, `src/components/cinematic/Interlude.tsx`
-- Test : `tests/unit/nav-items.test.ts`, `tests/unit/button.test.tsx`
+- Create : `src/presentation/lib/gsap.ts`, `src/presentation/components/ui/{Button,Magnetic,Chip,Eyebrow,SectionHeading,Section,Reveal,RevealController,Icon,LangSwitch,Nav,Dock,Footer,SmoothScroll,nav-items}.ts(x)`, `src/presentation/components/ui/use-active-section.ts`, `src/app/(site)/[locale]/(shell)/layout.tsx`, `src/app/(site)/[locale]/(shell)/page.tsx`, `src/presentation/i18n/messages/{fr,en}/{nav,footer}.json`
+- Create (**stubs remplacés par leur tâche propriétaire**) : `src/presentation/components/sections/{Hero,About,Services,TechStack,Projects,Journey,Process,Contact}.tsx`, `src/presentation/components/cinematic/Interlude.tsx`, `src/app/(site)/[locale]/(shell)/_actions/submit-contact.ts` (stub d'action, remplacé en T16)
+- Test : `tests/unit/presentation/nav-items.test.ts`, `tests/unit/presentation/button.test.tsx`
 
 **Interfaces :**
-- Consumes : `Glass`, `cn` (T1/T2) ; `getSite`, `getHomeData`, `computeStatValues`, types `*VM` (T7) ; `Link`, `usePathname` (`@/i18n/navigation`, T6)
+- Consumes : `Glass`, `cn` (T1/T2) ; `getPortfolioUseCases()` (`@/composition`), cas d'usage `GetSiteProfile` / `GetHomePage` et types du domaine `@/domain` (T7) ; `Link`, `usePathname` (`@/presentation/i18n/navigation`, T6)
 - Produces :
-  - `src/lib/gsap.ts` : `export { gsap, ScrollTrigger, useGSAP }` (plugins enregistrés une seule fois, garde `typeof window`)
+  - `src/presentation/lib/gsap.ts` : `export { gsap, ScrollTrigger, useGSAP }` (plugins enregistrés une seule fois, garde `typeof window`)
   - `type SectionId = 'hero'|'about'|'services'|'stack'|'projects'|'journey'|'process'|'contact'` ; `NAV_ITEMS: readonly { id: SectionId }[]` (about, services, stack, projects, journey, contact) ; `DOCK_ITEMS: readonly { id: SectionId; icon: 'home'|'user'|'layers'|'folder-kanban'|'mail' }[]` (hero, about, services, projects, contact) — `nav-items.ts`
   - `<Button variant?='primary'|'secondary' href? onClick? icon?='arrow-up-right'|'download'|'send' size?='md'|'lg' magnetic? className? …button/a props>` — `<a>` si `href`, sinon `<button type="button">` ; `min-height: 2.75rem` (44px)
   - **Convention d'accessibilité des sections :** `<SectionHeading id="<sectionId>-title" …>` et `<Section id="<sectionId>" labelledBy="<sectionId>-title">` (ex. `about-title`) ; le hero utilise `hero-title` (posé sur le `h1`)
   - `<Chip tone?='glass'|'accent'>` · `<Eyebrow>` · `<SectionHeading eyebrow title id align?>` · `<Section id labelledBy? className?>` (rend `<section id data-section aria-labelledby class="section-y scroll-mt-28"><div class="container-x">…`) · `<Reveal as? className? delay?>` (serveur : ajoute la classe `reveal`) · `<RevealController/>` (client)
   - `ServiceIcon({ name: ServiceIconName; className? })`, `UiIcon({ name; className? })` — tables d'icônes **statiques** (jamais `icons` en bloc de lucide)
   - Signatures **figées** des sections (utilisées par `page.tsx`) :
-    `Hero({ site, cinematic })` · `About({ site, stats })` (`stats: {years,experiences,technologies,projects}`) · `Services({ services })` · `Stack({ stacks })` · `Projects({ projects, stacks })` · `Journey({ experiences })` · `Process({ headline, steps })` · `Contact({ site })` · `Interlude({ cinematic })`
+    `Hero({ site, cinematic })` · `About({ site, stats })` (`stats: {years,experiences,technologies,projects}`) · `Services({ services })` · `TechStack({ stacks })` · `Projects({ projects, stacks })` · `Journey({ experiences })` · `Process({ headline, steps })` · `Contact({ site, submitAction })` · `Interlude({ cinematic })`
 - Clés `nav` : `label`, `cta`, `items.hero|about|services|stack|projects|journey|contact`, `dockLabel` ; clés `footer` : `rights`, `builtWith`, `backToTop`, `linkedin`, `github`, `email`
 
 - [ ] **Step 1 : Tests qui échouent**
 
-`tests/unit/nav-items.test.ts` :
+`tests/unit/presentation/nav-items.test.ts` :
 ```ts
 import { describe, expect, it } from 'vitest'
-import { DOCK_ITEMS, NAV_ITEMS } from '@/components/ui/nav-items'
+import { DOCK_ITEMS, NAV_ITEMS } from '@/presentation/components/ui/nav-items'
 
 const SECTION_IDS = ['hero', 'about', 'services', 'stack', 'projects', 'journey', 'process', 'contact']
 
@@ -2218,12 +2751,12 @@ describe('nav-items', () => {
   })
 })
 ```
-`tests/unit/button.test.tsx` :
+`tests/unit/presentation/button.test.tsx` :
 ```tsx
 // @vitest-environment jsdom
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { Button } from '@/components/ui/Button'
+import { Button } from '@/presentation/components/ui/Button'
 
 describe('<Button>', () => {
   it('rend un <a> avec href', () => {
@@ -2244,7 +2777,7 @@ Run → **FAIL**.
 
 - [ ] **Step 2 : Implémenter les primitives**
 
-`src/lib/gsap.ts` :
+`src/presentation/lib/gsap.ts` :
 ```ts
 'use client'
 import { useGSAP } from '@gsap/react'
@@ -2255,7 +2788,7 @@ if (typeof window !== 'undefined') gsap.registerPlugin(ScrollTrigger, useGSAP)
 
 export { gsap, ScrollTrigger, useGSAP }
 ```
-`src/components/ui/nav-items.ts` :
+`src/presentation/components/ui/nav-items.ts` :
 ```ts
 export type SectionId = 'hero' | 'about' | 'services' | 'stack' | 'projects' | 'journey' | 'process' | 'contact'
 export const NAV_ITEMS = [{ id: 'about' }, { id: 'services' }, { id: 'stack' }, { id: 'projects' }, { id: 'journey' }, { id: 'contact' }] as const satisfies readonly { id: SectionId }[]
@@ -2270,8 +2803,8 @@ export const DOCK_ITEMS = [
 `RevealController.tsx` (client) :
 ```tsx
 'use client'
-import { usePathname } from '@/i18n/navigation'
-import { gsap, ScrollTrigger, useGSAP } from '@/lib/gsap'
+import { usePathname } from '@/presentation/i18n/navigation'
+import { gsap, ScrollTrigger, useGSAP } from '@/presentation/lib/gsap'
 
 export function RevealController() {
   const pathname = usePathname()
@@ -2302,7 +2835,7 @@ export function RevealController() {
 'use client'
 import Lenis from 'lenis'
 import { useEffect } from 'react'
-import { gsap, ScrollTrigger } from '@/lib/gsap'
+import { gsap, ScrollTrigger } from '@/presentation/lib/gsap'
 
 export function SmoothScroll() {
   useEffect(() => {
@@ -2322,29 +2855,31 @@ export function SmoothScroll() {
 ```
 `Icon.tsx` : `ServiceIcon` (table `Record<ServiceIconName, LucideIcon>` sur les 12 noms de `SERVICE_ICON_NAMES`) et `UiIcon` (table : `arrow-up-right`, `download`, `send`, `home`, `user`, `layers`, `folder-kanban`, `mail`, `chevron-down`, `external-link`, `calendar`, `briefcase`, `code`, `sparkles`). **Pas d'icônes de marque** (Lucide 1.x les a retirées) : liens sociaux en texte. Vérifier les noms exacts exportés par `lucide-react@1.49` (`Home` peut s'appeler `House`).
 `use-active-section.ts` : `useActiveSection(ids: readonly string[]): string | null` — `IntersectionObserver` avec `rootMargin: '-40% 0px -50% 0px'`.
-`LangSwitch.tsx` (client, `data-testid="lang-switch"`) : deux `Link` `FR` / `EN` (`locale` du `Link` de `@/i18n/navigation`, chemin courant conservé), dans une pilule verre ; `aria-current="true"` sur la langue active, `hrefLang`, `aria-label={t('common.language.switch')}`, cibles ≥ 44px.
+`LangSwitch.tsx` (client, `data-testid="lang-switch"`) : deux `Link` `FR` / `EN` (`locale` du `Link` de `@/presentation/i18n/navigation`, chemin courant conservé), dans une pilule verre ; `aria-current="true"` sur la langue active, `hrefLang`, `aria-label={t('common.language.switch')}`, cibles ≥ 44px.
 `Nav.tsx` (client, `data-testid="nav"`) : props `{ name: string; jobTitle: string }` ; `<Glass as="nav" variant="pill" refract aria-label={t('nav.label')}>` fixe `top-3 inset-x-3 md:top-4 md:inset-x-6 z-50` ; gauche : logo (monogramme « DB » dans une pastille verre + `name` + `jobTitle` en `--ink-muted`, `jobTitle` masqué < md) ; centre (≥ md) : `NAV_ITEMS` avec `aria-current` + pastille blanche sur la section active (`useActiveSection`) ; droite : `LangSwitch` + `Button` « Discutons » (≥ lg) → `#contact`. **Sur la home** `href="#id"` ; **ailleurs** (`usePathname() !== '/'`) `href="/#id"`. Sous md : uniquement logo + `LangSwitch` (la navigation passe par le dock).
 `Dock.tsx` (client, `data-testid="dock"`) : `md:hidden fixed bottom-3 inset-x-3 z-50`, `<Glass as="nav" variant="dock" aria-label={t('nav.dockLabel')}>`, 5 `DOCK_ITEMS` (icône 20px + libellé `text-[0.75rem]`, cible `min-h-11 min-w-11`, `gap` ≥ 8px), actif = pastille blanche + `aria-current`, `padding-bottom: env(safe-area-inset-bottom)`.
-`Footer.tsx` (serveur) : `{ site: SiteVM }` — nom, `© {année} {name}`, liens texte LinkedIn / GitHub / e-mail (si présents) + `builtWith`, bouton « Retour en haut ».
+`Footer.tsx` (serveur) : `{ site: SiteProfile }` — nom, `© {année} {name}`, liens texte LinkedIn / GitHub / e-mail (si présents) + `builtWith`, bouton « Retour en haut ».
 `Section.tsx`, `SectionHeading.tsx`, `Eyebrow.tsx`, `Chip.tsx` selon les contrats ci-dessus et `MASTER.md` (eyebrow : `text-[0.8125rem] uppercase tracking-[0.14em] text-[var(--accent-text)]`).
 
 - [ ] **Step 3 : Shell + page + stubs**
 
 `(shell)/layout.tsx` (serveur) :
 ```tsx
+import { notFound } from 'next/navigation'
 import { setRequestLocale } from 'next-intl/server'
-import { Dock } from '@/components/ui/Dock'
-import { Footer } from '@/components/ui/Footer'
-import { Nav } from '@/components/ui/Nav'
-import { RevealController } from '@/components/ui/RevealController'
-import { SmoothScroll } from '@/components/ui/SmoothScroll'
-import { getSite } from '@/lib/content/queries'
-import type { Locale } from '@/lib/content/types'
+import { Dock } from '@/presentation/components/ui/Dock'
+import { Footer } from '@/presentation/components/ui/Footer'
+import { Nav } from '@/presentation/components/ui/Nav'
+import { RevealController } from '@/presentation/components/ui/RevealController'
+import { SmoothScroll } from '@/presentation/components/ui/SmoothScroll'
+import { getPortfolioUseCases } from '@/composition'
+import { isLocale } from '@/domain'
 
 export default async function ShellLayout({ children, params }: { children: React.ReactNode; params: Promise<{ locale: string }> }) {
   const { locale } = await params
+  if (!isLocale(locale)) notFound()
   setRequestLocale(locale)
-  const site = await getSite(locale as Locale)
+  const site = await getPortfolioUseCases().getSiteProfile.execute(locale)
   return (
     <>
       <SmoothScroll />
@@ -2357,36 +2892,45 @@ export default async function ShellLayout({ children, params }: { children: Reac
   )
 }
 ```
-`(shell)/page.tsx` : `export const revalidate = 3600` ; `generateMetadata` (titre/description de `site.seo`, repli sur `common.meta*`, `openGraph.images` = `site.seo.ogImage`) ; composition exacte :
+`(shell)/page.tsx` (**mince** : elle appelle **un** cas d'usage et passe des données aux sections ; imports : `getPortfolioUseCases` de `@/composition`, `isLocale` de `@/domain`, `submitContact` de `./_actions/submit-contact`) : `export const revalidate = 3600` ; `generateMetadata` (titre/description de `site.seo`, repli sur `common.meta*`, `openGraph.images` = `site.seo.ogImage`) ; composition exacte :
 ```tsx
-export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
+export default async function HomeRoute({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params
+  if (!isLocale(locale)) notFound()
   setRequestLocale(locale)
-  const data = await getHomeData(locale as Locale)
-  const stats = computeStatValues({ experiences: data.experiences, projectsCount: data.projects.length, stacksCount: data.stacks.length, now: new Date() })
+  const home = await getPortfolioUseCases().getHomePage.execute(locale)
   return (
     <>
-      <Hero site={data.site} cinematic={data.cinematic} />
-      <Interlude cinematic={data.cinematic} />
-      <About site={data.site} stats={stats} />
-      <Services services={data.services} />
-      <Stack stacks={data.stacks} />
-      <Projects projects={data.projects} stacks={data.stacks} />
-      <Journey experiences={data.experiences} />
-      <Process headline={data.site.process.headline} steps={data.site.process.steps} />
-      <Contact site={data.site} />
+      <Hero site={home.site} cinematic={home.cinematic} />
+      <Interlude cinematic={home.cinematic} />
+      <About site={home.site} stats={home.stats} />
+      <Services services={home.services} />
+      <TechStack stacks={home.stacks} />
+      <Projects projects={home.projects} stacks={home.stacks} />
+      <Journey experiences={home.experiences} />
+      <Process headline={home.site.process.headline} steps={home.site.process.steps} />
+      <Contact site={home.site} submitAction={submitContact} />
     </>
   )
 }
 ```
 **Stubs** (un fichier par section, **signature exacte**, remplacés ensuite) :
 ```tsx
-import { Section } from '@/components/ui/Section'
-export function Services(_props: { services: ServiceVM[] }) {
+import { Section } from '@/presentation/components/ui/Section'
+export function Services(_props: { services: Service[] }) {
   return <Section id="services"><h2 className="sr-only">Services</h2></Section>
 }
 ```
-(idem pour les 8 sections ; `Interlude` : `return null`). `Hero` stub : `<Section id="hero"><h1>{site.name}</h1></Section>`.
+(idem pour les 8 sections ; `Interlude` : `return null`). `Hero` stub : `<Section id="hero"><h1>{site.name}</h1></Section>`. `Contact` stub : `Contact(_props: { site: SiteProfile; submitAction: unknown })`. **Stub d'action** `_actions/submit-contact.ts` (remplacé en T16) :
+```ts
+'use server'
+
+type ContactFormState = { status: 'idle' } | { status: 'error' }
+
+export async function submitContact(_previous: ContactFormState, _formData: FormData): Promise<ContactFormState> {
+  return { status: 'error' }
+}
+```
 `nav.json` FR : `label` « Navigation principale », `cta` « Discutons », `dockLabel` « Navigation rapide », `items` : Accueil, À propos, Services, Stack, Projets, Parcours, Contact. `footer.json` FR : `rights` « Tous droits réservés. », `builtWith` « Conçu avec Next.js, Payload et une bonne dose de verre liquide. », `backToTop` « Retour en haut », `linkedin` « LinkedIn », `github` « GitHub », `email` « E-mail ». + EN.
 
 - [ ] **Step 4 : Vérifier**
@@ -2396,7 +2940,7 @@ Run : `pnpm test` **PASS** · `pnpm typecheck && pnpm lint` verts · `pnpm db:up
 - [ ] **Step 5 : Commit**
 
 ```bash
-git add src/lib/gsap.ts src/components/ui src/components/sections src/components/cinematic/Interlude.tsx "src/app/(site)/[locale]/(shell)" src/messages/fr/nav.json src/messages/en/nav.json src/messages/fr/footer.json src/messages/en/footer.json tests/unit/nav-items.test.ts tests/unit/button.test.tsx
+git add src/presentation/lib/gsap.ts src/presentation/components/ui src/presentation/components/sections src/presentation/components/cinematic/Interlude.tsx "src/app/(site)/[locale]/(shell)" src/presentation/i18n/messages/fr/nav.json src/presentation/i18n/messages/en/nav.json src/presentation/i18n/messages/fr/footer.json src/presentation/i18n/messages/en/footer.json tests/unit/presentation/nav-items.test.ts tests/unit/presentation/button.test.tsx
 git commit -m "feat(ui): add primitives, floating nav, mobile dock, footer, smooth scroll and page shell with section stubs"
 ```
 
@@ -2405,12 +2949,12 @@ git commit -m "feat(ui): add primitives, floating nav, mobile dock, footer, smoo
 ## Task 10 : Moteur cinématique — capacités, avatar 3D, hero motion, scrub
 
 **Files :**
-- Create : `src/lib/cinematic/hero-mode.ts`, `src/lib/cinematic/capabilities.ts`, `src/components/cinematic/{GlassOrb.tsx,GlassOrb.module.css,AvatarCanvas.tsx,HeroStage.tsx,HeroMotion.tsx,ScrubVideo.tsx}`, `scripts/media/make-fixture-glb.mjs`, `public/fixtures/avatar-fixture.glb` (généré)
-- Modify : `src/components/cinematic/Interlude.tsx` (remplace le stub)
-- Test : `tests/unit/hero-mode.test.ts`, `tests/unit/capabilities.test.ts`
+- Create : `src/presentation/cinematic/hero-mode.ts`, `src/presentation/cinematic/capabilities.ts`, `src/presentation/components/cinematic/{GlassOrb.tsx,GlassOrb.module.css,AvatarCanvas.tsx,HeroStage.tsx,HeroMotion.tsx,ScrubVideo.tsx}`, `scripts/media/make-fixture-glb.mjs`, `public/fixtures/avatar-fixture.glb` (généré)
+- Modify : `src/presentation/components/cinematic/Interlude.tsx` (remplace le stub)
+- Test : `tests/unit/presentation/cinematic/hero-mode.test.ts`, `tests/unit/presentation/cinematic/capabilities.test.ts`
 
 **Interfaces :**
-- Consumes : `CinematicVM`, `MediaVM` (T7) ; `Glass` (T2) ; `gsap`, `ScrollTrigger`, `useGSAP` (T9)
+- Consumes : `CinematicMedia`, `MediaAsset` (T7) ; `Glass` (T2) ; `gsap`, `ScrollTrigger`, `useGSAP` (T9)
 - Produces :
   - `type Capabilities = { reducedMotion: boolean; saveData: boolean; deviceMemory?: number; hardwareConcurrency?: number; webgl: boolean; mobile: boolean }` ; `type HeroMedia = { hasModel: boolean; hasVideo: boolean; hasPortrait: boolean; hasPoster: boolean }` ; `type HeroMode = 'avatar3d'|'video'|'poster'|'orb'` ; `isLowPower(c): boolean` ; `decideHeroMode(c, m): { mode: HeroMode; animate: boolean }` ; `detectCapabilities(win?: Window): Capabilities`
   - `<GlassOrb size? tint?='violet'|'blue'|'teal' className?>` (CSS pur, `aria-hidden`, dérive lente, coupée sous reduced-motion)
@@ -2420,10 +2964,10 @@ git commit -m "feat(ui): add primitives, floating nav, mobile dock, footer, smoo
 
 - [ ] **Step 1 : Tests de la logique pure (échouent)**
 
-`tests/unit/hero-mode.test.ts` :
+`tests/unit/presentation/cinematic/hero-mode.test.ts` :
 ```ts
 import { describe, expect, it } from 'vitest'
-import { decideHeroMode, isLowPower, type Capabilities, type HeroMedia } from '@/lib/cinematic/hero-mode'
+import { decideHeroMode, isLowPower, type Capabilities, type HeroMedia } from '@/presentation/cinematic/hero-mode'
 
 const base: Capabilities = { reducedMotion: false, saveData: false, webgl: true, mobile: false, deviceMemory: 8, hardwareConcurrency: 8 }
 const all: HeroMedia = { hasModel: true, hasVideo: true, hasPortrait: true, hasPoster: true }
@@ -2468,12 +3012,12 @@ describe('decideHeroMode', () => {
   })
 })
 ```
-`tests/unit/capabilities.test.ts` (jsdom) : fournit un faux `window` (`matchMedia` stub renvoyant `matches` selon la requête, `navigator: { hardwareConcurrency: 8, deviceMemory: 8, connection: { saveData: true } }`, `document.createElement('canvas').getContext` stub) et vérifie `reducedMotion`, `saveData`, `webgl` (true/false selon le stub), `mobile` (`(max-width: 767px)`).
+`tests/unit/presentation/cinematic/capabilities.test.ts` (jsdom) : fournit un faux `window` (`matchMedia` stub renvoyant `matches` selon la requête, `navigator: { hardwareConcurrency: 8, deviceMemory: 8, connection: { saveData: true } }`, `document.createElement('canvas').getContext` stub) et vérifie `reducedMotion`, `saveData`, `webgl` (true/false selon le stub), `mobile` (`(max-width: 767px)`).
 Run → **FAIL**.
 
 - [ ] **Step 2 : Implémenter la logique pure**
 
-`src/lib/cinematic/hero-mode.ts` :
+`src/presentation/cinematic/hero-mode.ts` :
 ```ts
 export type Capabilities = { reducedMotion: boolean; saveData: boolean; deviceMemory?: number; hardwareConcurrency?: number; webgl: boolean; mobile: boolean }
 export type HeroMedia = { hasModel: boolean; hasVideo: boolean; hasPortrait: boolean; hasPoster: boolean }
@@ -2493,7 +3037,7 @@ export function decideHeroMode(c: Capabilities, m: HeroMedia): { mode: HeroMode;
 }
 ```
 > Note : `poster` avec `saveData` → `animate: false`. Le test « saveData → poster » vérifie seulement `mode`.
-`src/lib/cinematic/capabilities.ts` : `export { type Capabilities } from './hero-mode'` + `detectCapabilities(win = window)` (lecture de `matchMedia`, `navigator.connection?.saveData`, `deviceMemory`, `hardwareConcurrency`, sonde WebGL `webgl2`/`webgl` dans un `try/catch`, `mobile = matchMedia('(max-width: 767px)').matches`).
+`src/presentation/cinematic/capabilities.ts` : `export { type Capabilities } from './hero-mode'` + `detectCapabilities(win = window)` (lecture de `matchMedia`, `navigator.connection?.saveData`, `deviceMemory`, `hardwareConcurrency`, sonde WebGL `webgl2`/`webgl` dans un `try/catch`, `mobile = matchMedia('(max-width: 767px)').matches`).
 Run : `pnpm test` → **PASS**.
 
 - [ ] **Step 3 : Fixture GLB de test**
@@ -2607,7 +3151,7 @@ export default function AvatarCanvas({ url, active, mobile, onReady }: Props) {
 ```tsx
 'use client'
 import { useRef } from 'react'
-import { gsap, useGSAP } from '@/lib/gsap'
+import { gsap, useGSAP } from '@/presentation/lib/gsap'
 
 export function HeroMotion({ children, className }: { children: React.ReactNode; className?: string }) {
   const root = useRef<HTMLElement>(null)
@@ -2641,7 +3185,7 @@ export function HeroMotion({ children, className }: { children: React.ReactNode;
 - [ ] **Step 6 : Commit**
 
 ```bash
-git add src/lib/cinematic src/components/cinematic scripts/media/make-fixture-glb.mjs public/fixtures tests/unit/hero-mode.test.ts tests/unit/capabilities.test.ts
+git add src/presentation/cinematic src/presentation/components/cinematic scripts/media/make-fixture-glb.mjs public/fixtures tests/unit/presentation/cinematic/hero-mode.test.ts tests/unit/presentation/cinematic/capabilities.test.ts
 git commit -m "feat(cinematic): add capability-aware hero engine, 3D avatar canvas, hero scroll motion and scrub video"
 ```
 
@@ -2650,11 +3194,11 @@ git commit -m "feat(cinematic): add capability-aware hero engine, 3D avatar canv
 ## Task 11 : Section Hero
 
 **Files :**
-- Modify : `src/components/sections/Hero.tsx` (remplace le stub)
-- Create : `src/components/sections/hero/{RotatingTitle,CvMenu,TrustedBy}.tsx`, `src/messages/{fr,en}/hero.json`, `tests/e2e/sections/hero.spec.ts`
+- Modify : `src/presentation/components/sections/Hero.tsx` (remplace le stub)
+- Create : `src/presentation/components/sections/hero/{RotatingTitle,CvMenu,TrustedBy}.tsx`, `src/presentation/i18n/messages/{fr,en}/hero.json`, `tests/e2e/sections/hero.spec.ts`
 
 **Interfaces :**
-- Consumes : `HeroMotion`, `HeroStage`, `GlassOrb` (T10) ; `Button`, `Chip`, `Eyebrow`, `Glass`, `Reveal` (T2/T9) ; `SiteVM`, `CinematicVM` (T7)
+- Consumes : `HeroMotion`, `HeroStage`, `GlassOrb` (T10) ; `Button`, `Chip`, `Eyebrow`, `Glass`, `Reveal` (T2/T9) ; `SiteProfile`, `CinematicMedia` (T7)
 - Produces : `Hero({ site, cinematic })` ; clés `hero` : `avatarAlt`, `cvMenuLabel`, `cvFullstack`, `cvAi`, `scrollHint`, `titlesLabel`
 
 - [ ] **Step 1 : Mise en page** (contrat visuel — référence `img/exemple-portfolio.jpg` + `MASTER.md`)
@@ -2727,7 +3271,7 @@ Run : `pnpm build && pnpm e2e tests/e2e/sections/hero.spec.ts` → **PASS** aux 
 - [ ] **Step 4 : Commit**
 
 ```bash
-git add src/components/sections/Hero.tsx src/components/sections/hero src/messages/fr/hero.json src/messages/en/hero.json tests/e2e/sections/hero.spec.ts
+git add src/presentation/components/sections/Hero.tsx src/presentation/components/sections/hero src/presentation/i18n/messages/fr/hero.json src/presentation/i18n/messages/en/hero.json tests/e2e/sections/hero.spec.ts
 git commit -m "feat(hero): add cinematic hero section with rotating title, CV menu and trusted-by strip"
 ```
 
@@ -2736,11 +3280,11 @@ git commit -m "feat(hero): add cinematic hero section with rotating title, CV me
 ## Task 12 : Sections À propos et Services
 
 **Files :**
-- Modify : `src/components/sections/About.tsx`, `src/components/sections/Services.tsx` (remplacent les stubs)
-- Create : `src/components/sections/about/StatCard.tsx`, `src/components/sections/services/ServiceCard.tsx`, `src/messages/{fr,en}/{about,services}.json`, `tests/e2e/sections/about-services.spec.ts`
+- Modify : `src/presentation/components/sections/About.tsx`, `src/presentation/components/sections/Services.tsx` (remplacent les stubs)
+- Create : `src/presentation/components/sections/about/StatCard.tsx`, `src/presentation/components/sections/services/ServiceCard.tsx`, `src/presentation/i18n/messages/{fr,en}/{about,services}.json`, `tests/e2e/sections/about-services.spec.ts`
 
 **Interfaces :**
-- Consumes : `Section`, `SectionHeading`, `Reveal`, `Glass`, `Button`, `ServiceIcon`, `UiIcon` (T9) ; `SiteVM`, `ServiceVM` (T7)
+- Consumes : `Section`, `SectionHeading`, `Reveal`, `Glass`, `Button`, `ServiceIcon`, `UiIcon` (T9) ; `SiteProfile`, `Service` (T7)
 - Produces : `About({ site, stats })`, `Services({ services })` ; clés `about` : `eyebrow`, `stats.years|experiences|technologies|projects`, `cta` ; clés `services` : `eyebrow`, `title`, `cta`
 
 - [ ] **Step 1 : About** — carte verre large (2 colonnes ≥ lg) : gauche `SectionHeading` (`eyebrow` = `about.eyebrow`, titre = `site.about.headline`) + grille de **`StatCard`** (`data-testid="stat-card"`) ; droite : `site.about.bio` (`max-w-prose`, `text-[var(--ink-2)]`) + `Button variant="secondary" href="#journey" icon="arrow-up-right">{t('cta')}`. **Stats** : si `site.about.autoStats` → 4 cartes depuis `stats` (`years` affiché `${n}+`, `experiences`, `technologies`, `projects`) avec libellés `about.stats.*` ; sinon `site.about.stats` (valeur/libellé du CMS). `StatCard` : `<Glass variant="card">` + icône Lucide décorative (`calendar`, `briefcase`, `code`, `sparkles`), valeur en `font-display text-3xl`, libellé `--ink-muted`. Grille `grid-cols-2` (mobile) → `lg:grid-cols-4`, `gap-3`.
@@ -2748,18 +3292,18 @@ git commit -m "feat(hero): add cinematic hero section with rotating title, CV me
 
 - [ ] **Step 2 : Services** — `SectionHeading` (`services.eyebrow` « Ce que je propose », `services.title` « Services ») + grille `md:grid-cols-2 xl:grid-cols-4 gap-4`. `ServiceCard` :
 ```tsx
-import { Glass } from '@/components/glass/Glass'
-import { ServiceIcon, UiIcon } from '@/components/ui/Icon'
-import type { ServiceVM } from '@/lib/content/types'
+import { Glass } from '@/presentation/components/glass/Glass'
+import { ServiceIcon, UiIcon } from '@/presentation/components/ui/Icon'
+import type { Service } from '@/domain'
 
-const TINT: Record<ServiceVM['tint'], string> = {
+const TINT: Record<Service['tint'], string> = {
   amber: 'bg-[color-mix(in_srgb,var(--tint-amber)_40%,white)]',
   violet: 'bg-[color-mix(in_srgb,var(--tint-violet)_40%,white)]',
   blue: 'bg-[color-mix(in_srgb,var(--tint-blue)_40%,white)]',
   teal: 'bg-[color-mix(in_srgb,var(--tint-teal)_40%,white)]',
 }
 
-export function ServiceCard({ service, cta }: { service: ServiceVM; cta: string }) {
+export function ServiceCard({ service, cta }: { service: Service; cta: string }) {
   return (
     <Glass as="a" href="#contact" interactive data-testid="service-card" aria-label={`${service.title} — ${cta}`} className="group flex min-h-56 flex-col gap-4 p-6">
       <span className={`grid size-12 place-items-center rounded-2xl text-[var(--ink)] ${TINT[service.tint]}`} aria-hidden="true">
@@ -2811,7 +3355,7 @@ Run : `pnpm build && pnpm e2e tests/e2e/sections/about-services.spec.ts` → **P
 - [ ] **Step 4 : Commit**
 
 ```bash
-git add src/components/sections/About.tsx src/components/sections/Services.tsx src/components/sections/about src/components/sections/services src/messages/fr/about.json src/messages/en/about.json src/messages/fr/services.json src/messages/en/services.json tests/e2e/sections/about-services.spec.ts
+git add src/presentation/components/sections/About.tsx src/presentation/components/sections/Services.tsx src/presentation/components/sections/about src/presentation/components/sections/services src/presentation/i18n/messages/fr/about.json src/presentation/i18n/messages/en/about.json src/presentation/i18n/messages/fr/services.json src/presentation/i18n/messages/en/services.json tests/e2e/sections/about-services.spec.ts
 git commit -m "feat(sections): add About with computed stats and Services cards"
 ```
 
@@ -2820,19 +3364,19 @@ git commit -m "feat(sections): add About with computed stats and Services cards"
 ## Task 13 : Sections Stack et Projets + page détail de projet
 
 **Files :**
-- Modify : `src/components/sections/Stack.tsx`, `src/components/sections/Projects.tsx` (remplacent les stubs)
-- Create : `src/components/sections/stack/StackTile.tsx`, `src/components/sections/projects/{ProjectCard,ProjectsGrid}.tsx`, `src/components/project/{ProjectHeader,ProjectBody,ProjectBody.module.css,ProjectGallery}.tsx`, `src/lib/stack-icon-color.ts`, `src/lib/project-cover.ts`, `src/app/(site)/[locale]/(shell)/projects/[slug]/page.tsx`, `src/messages/{fr,en}/{stack,projects}.json`, `tests/unit/stack-icon-color.test.ts`, `tests/unit/project-cover.test.ts`, `tests/e2e/sections/stack-projects.spec.ts`
+- Modify : `src/presentation/components/sections/TechStack.tsx`, `src/presentation/components/sections/Projects.tsx` (remplacent les stubs)
+- Create : `src/presentation/components/sections/stack/StackTile.tsx`, `src/presentation/components/sections/projects/{ProjectCard,ProjectsGrid}.tsx`, `src/presentation/components/project/{ProjectHeader,ProjectBody,ProjectBody.module.css,ProjectGallery}.tsx`, `src/presentation/lib/stack-icon-color.ts`, `src/presentation/lib/project-cover.ts`, `src/app/(site)/[locale]/(shell)/projects/[slug]/page.tsx`, `src/presentation/i18n/messages/{fr,en}/{stack,projects}.json`, `tests/unit/presentation/stack-icon-color.test.ts`, `tests/unit/presentation/project-cover.test.ts`, `tests/e2e/sections/stack-projects.spec.ts`
 
 **Interfaces :**
-- Consumes : `groupStacksByCategory`, `getProject`, `getProjectSlugs`, `getProjects` (T7) ; `Glass`, `Section*`, `Reveal`, `Button`, `Chip`, `UiIcon` (T2/T9) ; `contrastRatio` (T2) ; `Link` (T6)
-- Produces : `Stack({ stacks })`, `Projects({ projects, stacks })` ; `iconColor(hex: string, surface?: string): string` (retourne `#hex` si contraste ≥ 3 sur la surface, sinon `var(--ink)`) ; `coverGradient(slug: string): { from: string; to: string; angle: number }` (déterministe, `from/to` = `var(--tint-…)`) ; page `/[locale]/projects/[slug]` ; clés `stack` : `eyebrow`, `title`, `categories.language|frontend|backend|architecture|testing|devops|security|ai` ; clés `projects` : `eyebrow`, `title`, `filterLabel`, `filterAll`, `empty`, `more`, `open`, `back`, `client`, `year`, `live`, `repo`, `stacks`, `gallery`, `caseStudy`, `previous`, `next`
+- Consumes : `groupStacksByCategory` (domaine), `getPortfolioUseCases().getProjectPage` / `.listProjectRefs` (`@/composition`, T7) ; `Glass`, `Section*`, `Reveal`, `Button`, `Chip`, `UiIcon` (T2/T9) ; `contrastRatio` (T2) ; `Link` (T6)
+- Produces : `TechStack({ stacks })` (le composant s'appelle `TechStack` pour ne pas entrer en collision avec le type du domaine `Stack`), `Projects({ projects, stacks })` ; `iconColor(hex: string, surface?: string): string` (retourne `#hex` si contraste ≥ 3 sur la surface, sinon `var(--ink)`) ; `coverGradient(slug: string): { from: string; to: string; angle: number }` (déterministe, `from/to` = `var(--tint-…)`) ; page `/[locale]/projects/[slug]` ; clés `stack` : `eyebrow`, `title`, `categories.language|frontend|backend|architecture|testing|devops|security|ai` ; clés `projects` : `eyebrow`, `title`, `filterLabel`, `filterAll`, `empty`, `more`, `open`, `back`, `client`, `year`, `live`, `repo`, `stacks`, `gallery`, `caseStudy`, `previous`, `next`
 
 - [ ] **Step 1 : Tests unitaires (échouent)**
 
-`tests/unit/stack-icon-color.test.ts` :
+`tests/unit/presentation/stack-icon-color.test.ts` :
 ```ts
 import { describe, expect, it } from 'vitest'
-import { iconColor } from '@/lib/stack-icon-color'
+import { iconColor } from '@/presentation/lib/stack-icon-color'
 
 describe('iconColor', () => {
   it('garde la couleur de marque si elle contraste (≥ 3:1) avec le verre', () => {
@@ -2846,10 +3390,10 @@ describe('iconColor', () => {
   })
 })
 ```
-`tests/unit/project-cover.test.ts` :
+`tests/unit/presentation/project-cover.test.ts` :
 ```ts
 import { describe, expect, it } from 'vitest'
-import { coverGradient } from '@/lib/project-cover'
+import { coverGradient } from '@/presentation/lib/project-cover'
 
 describe('coverGradient', () => {
   it('est déterministe', () => {
@@ -2868,9 +3412,9 @@ describe('coverGradient', () => {
 })
 ```
 Run → **FAIL**. Implémenter :
-`src/lib/stack-icon-color.ts` :
+`src/presentation/lib/stack-icon-color.ts` :
 ```ts
-import { contrastRatio } from '@/lib/a11y/contrast'
+import { contrastRatio } from '@/presentation/design/contrast'
 
 const GLASS_SURFACE = '#F9F8FC' // verre 62 % sur --bg (voir MASTER.md)
 
@@ -2879,7 +3423,7 @@ export function iconColor(hex: string, surface: string = GLASS_SURFACE): string 
   return contrastRatio(h, surface) >= 3 ? h : 'var(--ink)'
 }
 ```
-`src/lib/project-cover.ts` :
+`src/presentation/lib/project-cover.ts` :
 ```ts
 const TINTS = ['amber', 'violet', 'blue', 'teal'] as const
 
@@ -2901,25 +3445,34 @@ Run → **PASS**.
 `ProjectCard` (`data-testid="project-card"`) : `<Glass as="article" interactive class="group relative overflow-hidden">` ; **cover** `next/image` (`cover.url`, `alt={cover.alt}`, `sizes`, ratio `aspect-[16/10]`) **ou** dégradé `coverGradient(slug)` + monogramme géant décoratif ; **barre de légende en verre** sous l'image (pas de texte sur l'image) : `<h3>` titre, `tagline` (2 lignes max), jusqu'à 4 `Chip` de stacks + « +n » ; **lien étiré** : `<Link href={`/projects/${slug}`} className="after:absolute after:inset-0 after:content-['']" aria-label={`${title} — ${t('open')}`}>` ; hover : image `scale-[1.04]` (≤ 8 %, `overflow-hidden`), `UiIcon arrow-up-right`.
 - [ ] **Step 4 : Page détail** `(shell)/projects/[slug]/page.tsx` (serveur) :
 ```tsx
+type ProjectRouteProps = { params: Promise<{ locale: string; slug: string }> }
+
 export const revalidate = 3600
+
 export async function generateStaticParams() {
-  const slugs = await getProjectSlugs()
-  return routing.locales.flatMap((locale) => slugs.map((slug) => ({ locale, slug })))
+  const refs = await getPortfolioUseCases().listProjectRefs.execute()
+  return routing.locales.flatMap((locale) => refs.map(({ slug }) => ({ locale, slug })))
 }
-export async function generateMetadata({ params }: { params: Promise<{ locale: string; slug: string }> }) {
+
+export async function generateMetadata({ params }: ProjectRouteProps): Promise<Metadata> {
   const { locale, slug } = await params
-  const p = await getProject(locale as Locale, slug)
-  if (!p) return {}
-  return { title: p.title, description: p.tagline || p.summary, openGraph: { images: p.cover ? [p.cover.url] : undefined } }
+  if (!isLocale(locale)) return {}
+  const page = await getPortfolioUseCases().getProjectPage.execute({ locale, slug })
+  if (!page) return {}
+  const { project } = page
+  return { title: project.title, description: project.tagline || project.summary, openGraph: { images: project.cover ? [project.cover.url] : undefined } }
 }
-export default async function ProjectPage({ params }: { params: Promise<{ locale: string; slug: string }> }) {
+
+export default async function ProjectRoute({ params }: ProjectRouteProps) {
   const { locale, slug } = await params
+  if (!isLocale(locale)) notFound()
   setRequestLocale(locale)
-  const project = await getProject(locale as Locale, slug)
-  if (!project) notFound()
-  // <ProjectHeader/> (retour, titre h1, tagline, méta client/année, boutons Live/Repo) + cover en <Glass> (aucun texte sur l'image)
-  // <ProjectBody/> : <RichText data={project.caseStudy}/> de '@payloadcms/richtext-lexical/react', typographie via ProjectBody.module.css (tokens uniquement)
-  // stacks groupés par catégorie (Chip), <ProjectGallery/> (next/image, alt du média), navigation précédent/suivant
+  const page = await getPortfolioUseCases().getProjectPage.execute({ locale, slug })
+  if (!page) notFound()
+  // <ProjectHeader project={page.project}/> (retour, titre h1, tagline, méta client/année, boutons Live/Repo) + cover en <Glass> (aucun texte sur l'image)
+  // <ProjectBody/> : <RichText data={project.caseStudy as unknown as SerializedEditorState}/> de '@payloadcms/richtext-lexical/react'.
+  //   Le champ `caseStudy` du domaine est opaque : ProjectBody est le SEUL endroit qui le convertit. Typographie via ProjectBody.module.css (tokens uniquement)
+  // stacks groupés par catégorie (groupStacksByCategory + Chip), <ProjectGallery/> (next/image, alt du média), navigation précédent/suivant depuis page.previous / page.next
 }
 ```
 `dynamicParams` reste `true` (un projet publié après le build est rendu à la demande puis mis en cache). `projects.json` FR : `eyebrow` « Réalisations », `title` « Projets sélectionnés », `filterLabel` « Filtrer par technologie », `filterAll` « Tout », `empty` « Aucun projet pour cette technologie. », `more` « Voir plus de projets », `open` « Voir le projet », `back` « Tous les projets », `client` « Client », `year` « Année », `live` « Voir le site », `repo` « Voir le code », `stacks` « Technologies », `gallery` « Galerie », `caseStudy` « Étude de cas », `previous` « Projet précédent », `next` « Projet suivant » + EN. `stack.json` FR : `eyebrow` « Outils & compétences », `title` « Technologies », `categories` : Langages, Frontend, Backend, Architecture, Tests, DevOps & Cloud, Sécurité, IA + EN.
@@ -2965,7 +3518,7 @@ Run : `pnpm build && pnpm e2e tests/e2e/sections/stack-projects.spec.ts` → **P
 - [ ] **Step 6 : Commit**
 
 ```bash
-git add src/components/sections/Stack.tsx src/components/sections/Projects.tsx src/components/sections/stack src/components/sections/projects src/components/project src/lib/stack-icon-color.ts src/lib/project-cover.ts "src/app/(site)/[locale]/(shell)/projects" src/messages/fr/stack.json src/messages/en/stack.json src/messages/fr/projects.json src/messages/en/projects.json tests/unit/stack-icon-color.test.ts tests/unit/project-cover.test.ts tests/e2e/sections/stack-projects.spec.ts
+git add src/presentation/components/sections/TechStack.tsx src/presentation/components/sections/Projects.tsx src/presentation/components/sections/stack src/presentation/components/sections/projects src/presentation/components/project src/presentation/lib/stack-icon-color.ts src/presentation/lib/project-cover.ts "src/app/(site)/[locale]/(shell)/projects" src/presentation/i18n/messages/fr/stack.json src/presentation/i18n/messages/en/stack.json src/presentation/i18n/messages/fr/projects.json src/presentation/i18n/messages/en/projects.json tests/unit/presentation/stack-icon-color.test.ts tests/unit/presentation/project-cover.test.ts tests/e2e/sections/stack-projects.spec.ts
 git commit -m "feat(sections): add Stack tiles, filterable Projects grid and project detail page"
 ```
 
@@ -2974,11 +3527,11 @@ git commit -m "feat(sections): add Stack tiles, filterable Projects grid and pro
 ## Task 14 : Sections Parcours et Méthode
 
 **Files :**
-- Modify : `src/components/sections/Journey.tsx`, `src/components/sections/Process.tsx` (remplacent les stubs)
-- Create : `src/components/sections/journey/TimelineItem.tsx`, `src/components/sections/process/ProcessStep.tsx`, `src/messages/{fr,en}/{journey,process}.json`, `tests/e2e/sections/journey-process.spec.ts`
+- Modify : `src/presentation/components/sections/Journey.tsx`, `src/presentation/components/sections/Process.tsx` (remplacent les stubs)
+- Create : `src/presentation/components/sections/journey/TimelineItem.tsx`, `src/presentation/components/sections/process/ProcessStep.tsx`, `src/presentation/i18n/messages/{fr,en}/{journey,process}.json`, `tests/e2e/sections/journey-process.spec.ts`
 
 **Interfaces :**
-- Consumes : `formatRange` (T7) ; `Section*`, `Reveal`, `Glass`, `Chip` (T2/T9) ; `getLocale` (`next-intl/server`) ; `ExperienceVM` (T7)
+- Consumes : `formatRange` (T7) ; `Section*`, `Reveal`, `Glass`, `Chip` (T2/T9) ; `getLocale` (`next-intl/server`) ; `Experience` (T7)
 - Produces : `Journey({ experiences })` (composant serveur **async**), `Process({ headline, steps })` ; clés `journey` : `eyebrow`, `title`, `present`, `work`, `education`, `details`, `stacks` ; clés `process` : `eyebrow`
 
 - [ ] **Step 1 : Journey** — `SectionHeading` (`journey.eyebrow` « Parcours », `journey.title` « Expériences & formation ») + liste verticale (`<ol>`) avec **rail** (ligne `--glass-hairline` + pastille par item, `--accent-strong` pour la plus récente). `TimelineItem` (`<li><Glass as="article" data-testid="timeline-item">`) : badge de type (`work`/`education` via `Chip`), `role` (h3), `organization · location`, plage `formatRange(start, end, locale, t('present'))`, `summary`, puis **`highlights`** : les 3 premiers visibles, le reste dans un `<details><summary>{t('details')}</summary>` natif (accessible, sans JS) ; chips de stacks (max 6). Ordre = `order` (déjà trié). Mobile : rail à gauche, carte pleine largeur ; ≥ lg : carte à droite du rail, dates en colonne de gauche.
@@ -3019,7 +3572,7 @@ Run → **PASS** ; revue visuelle 4 viewports.
 - [ ] **Step 4 : Commit**
 
 ```bash
-git add src/components/sections/Journey.tsx src/components/sections/Process.tsx src/components/sections/journey src/components/sections/process src/messages/fr/journey.json src/messages/en/journey.json src/messages/fr/process.json src/messages/en/process.json tests/e2e/sections/journey-process.spec.ts
+git add src/presentation/components/sections/Journey.tsx src/presentation/components/sections/Process.tsx src/presentation/components/sections/journey src/presentation/components/sections/process src/presentation/i18n/messages/fr/journey.json src/presentation/i18n/messages/en/journey.json src/presentation/i18n/messages/fr/process.json src/presentation/i18n/messages/en/process.json tests/e2e/sections/journey-process.spec.ts
 git commit -m "feat(sections): add Journey timeline and Process steps"
 ```
 
@@ -3028,7 +3581,7 @@ git commit -m "feat(sections): add Journey timeline and Process steps"
 ## Task 15 : Scripts d'optimisation média + pack de prompts Higgsfield
 
 **Files :**
-- Create : `scripts/media/lib.mjs`, `scripts/media/optimize-glb.mjs`, `scripts/media/optimize-video.mjs`, `docs/higgsfield/{README,01-personnage-memoji,02-avatar-3d,03-video-hero,04-transitions,05-optimiser-et-deposer}.md`, `tests/unit/media-lib.test.ts`
+- Create : `scripts/media/lib.mjs`, `scripts/media/optimize-glb.mjs`, `scripts/media/optimize-video.mjs`, `docs/higgsfield/{README,01-personnage-memoji,02-avatar-3d,03-video-hero,04-transitions,05-optimiser-et-deposer}.md`, `tests/unit/scripts/media-lib.test.ts`
 - Modify : `.gitignore` (ajouter `/media-out/`)
 
 **Interfaces :**
@@ -3037,11 +3590,11 @@ git commit -m "feat(sections): add Journey timeline and Process steps"
 
 - [ ] **Step 1 : Tests (échouent)**
 
-`tests/unit/media-lib.test.ts` :
+`tests/unit/scripts/media-lib.test.ts` :
 ```ts
 import { describe, expect, it } from 'vitest'
 // @ts-expect-error module .mjs sans types
-import { BUDGETS, buildFfmpegArgs, checkBudget } from '../../scripts/media/lib.mjs'
+import { BUDGETS, buildFfmpegArgs, checkBudget } from '../../../scripts/media/lib.mjs'
 
 describe('checkBudget', () => {
   it('ok sous le budget, ko au-dessus', () => {
@@ -3127,228 +3680,369 @@ Négatif : *photorealistic, uncanny, distorted hands, extra fingers, text, water
 - [ ] **Step 6 : Commit**
 
 ```bash
-git add scripts/media/lib.mjs scripts/media/optimize-glb.mjs scripts/media/optimize-video.mjs docs/higgsfield tests/unit/media-lib.test.ts .gitignore
+git add scripts/media/lib.mjs scripts/media/optimize-glb.mjs scripts/media/optimize-video.mjs docs/higgsfield tests/unit/scripts/media-lib.test.ts .gitignore
 git commit -m "feat(media): add GLB/video optimization scripts and Higgsfield prompt pack"
 ```
 
 ---
 
-## Task 16 : Contact — formulaire, server action, anti-spam, notification
+## Task 16 : Contact — règles du domaine, cas d'usage, adaptateurs, action serveur, formulaire
 
 **Files :**
-- Create : `src/lib/contact/{schema,process,ip,action,deps}.ts`, `src/components/sections/contact/ContactForm.tsx`, `src/messages/{fr,en}/contact.json`, `tests/unit/contact-schema.test.ts`, `tests/unit/contact-process.test.ts`, `tests/unit/contact-ip.test.ts`, `tests/integration/contact.int.test.ts`, `tests/e2e/sections/contact.spec.ts`
-- Modify : `src/components/sections/Contact.tsx` (remplace le stub)
+- Create (domain) : `src/domain/contact/contact-policy.ts`, `src/domain/contact/contact-draft.ts` ; Modify : `src/domain/index.ts` (exports contact)
+- Create (application) : `src/application/ports/{contact-message-repository,contact-notifier,ip-hasher}.ts`, `src/application/contact/submit-contact-message.ts`
+- Create (infrastructure) : `src/infrastructure/cms/payload/payload-contact-message-repository.ts`, `src/infrastructure/contact/{resend-contact-notifier,sha256-ip-hasher}.ts`
+- Create (composition) : `src/composition/contact.ts` ; Modify : `src/composition/index.ts`
+- Create (app) : `src/app/(site)/[locale]/(shell)/_actions/client-ip.ts` ; Modify : `src/app/(site)/[locale]/(shell)/_actions/submit-contact.ts` (remplace le stub de T9)
+- Create (presentation) : `src/presentation/components/sections/contact/ContactForm.tsx`, `src/presentation/i18n/messages/{fr,en}/contact.json` ; Modify : `src/presentation/components/sections/Contact.tsx` (remplace le stub)
+- Create (tests) : `tests/support/{in-memory-contact-message-repository,fake-ip-hasher}.ts`, `tests/unit/domain/{contact-draft,contact-policy}.test.ts`, `tests/unit/application/submit-contact-message.test.ts`, `tests/unit/infrastructure/sha256-ip-hasher.test.ts`, `tests/unit/app/client-ip.test.ts`, `tests/integration/contact.int.test.ts`, `tests/e2e/sections/contact.spec.ts`
 
 **Interfaces :**
-- Consumes : collection `messages`, `MESSAGE_TOPICS` (T4) ; `SiteVM.contact` (T7) ; `Glass`, `Button`, `SectionHeading`, `Reveal` (T2/T9) ; clés `errors.*` (T6)
-- Produces :
-  - `CONTACT_TOPICS`, `contactSchema`, `type ContactInput`, `type ContactFieldErrors = Partial<Record<'name'|'email'|'topic'|'message', 'required'|'emailInvalid'|'tooShort'|'tooLong'>>`, `mapZodErrors(error: ZodError): ContactFieldErrors` — `schema.ts`
-  - `MIN_FILL_MS = 3000`, `RATE_WINDOW_MS = 600_000`, `RATE_MAX = 3`, `type ContactDeps`, `type ContactResult = { status: 'ok' } | { status: 'invalid'; fieldErrors: ContactFieldErrors } | { status: 'rate_limited' } | { status: 'error' }`, `processContact(raw: unknown, ip: string, deps: ContactDeps): Promise<ContactResult>` — `process.ts`
-  - `hashIp(ip: string, salt: string): string` (sha256 hex, 32 premiers caractères) ; `clientIp(headers: Headers): string` — `ip.ts`
-  - `buildDeps(payload: Payload): ContactDeps` — `deps.ts` ; `submitContact(prev: ContactState, formData: FormData): Promise<ContactState>` (`'use server'`), `type ContactState = { status: 'idle' } | ContactResult` — `action.ts`
-  - Clés `contact` : `eyebrow`, `title`, `intro`, `fields.name|email|topic|message`, `topics.project|ai|job|other`, `submit`, `sending`, `success`, `error`, `rateLimited`, `details.title|email|linkedin|github|location|phone`, `honeypot`
-
-- [ ] **Step 1 : Tests du schéma et des erreurs (échouent)**
-
-`tests/unit/contact-schema.test.ts` :
+- Consumes : `Locale`, `LOCALES`, `Result`, `ok`, `err` (domaine) ; `Clock` (T7) ; collection `messages` (T4) ; `SiteProfile.contact` (T7) ; `Glass`, `Button`, `SectionHeading`, `Reveal` (T2/T9) ; clés `errors.*` (T6)
+- Produces — **domaine** :
 ```ts
-import { describe, expect, it } from 'vitest'
-import { contactSchema, mapZodErrors } from '@/lib/contact/schema'
-
-const valid = { name: 'Ada Lovelace', email: 'ada@example.com', topic: 'project', message: 'Bonjour, je voudrais discuter d’un projet.', locale: 'fr', website: '' }
-
-describe('contactSchema', () => {
-  it('accepte une saisie valide (startedAt optionnel)', () => {
-    expect(contactSchema.safeParse(valid).success).toBe(true)
-    expect(contactSchema.safeParse({ ...valid, startedAt: '1700000000000' }).success).toBe(true)
-  })
-  it('remonte des codes d’erreur par champ', () => {
-    const r = contactSchema.safeParse({ ...valid, name: 'A', email: 'nope', message: 'court' })
-    expect(r.success).toBe(false)
-    if (!r.success) {
-      expect(mapZodErrors(r.error)).toEqual({ name: 'tooShort', email: 'emailInvalid', message: 'tooShort' })
-    }
-  })
-  it('champ manquant → required', () => {
-    const r = contactSchema.safeParse({ ...valid, name: undefined })
-    if (!r.success) expect(mapZodErrors(r.error).name).toBe('required')
-  })
-  it('message trop long → tooLong', () => {
-    const r = contactSchema.safeParse({ ...valid, message: 'x'.repeat(2001) })
-    if (!r.success) expect(mapZodErrors(r.error).message).toBe('tooLong')
-  })
-})
-```
-`tests/unit/contact-ip.test.ts` : `hashIp('1.2.3.4','s')` est déterministe, fait 32 caractères hex, change avec le sel et avec l'IP ; `clientIp(new Headers({ 'x-forwarded-for': '9.9.9.9, 10.0.0.1' }))` = `9.9.9.9` ; `x-real-ip` en repli ; `0.0.0.0` par défaut.
-`tests/unit/contact-process.test.ts` (dépendances factices) :
-```ts
-import { describe, expect, it, vi } from 'vitest'
-import { MIN_FILL_MS, RATE_MAX, processContact, type ContactDeps } from '@/lib/contact/process'
-
-const NOW = 1_800_000_000_000
-const base = { name: 'Ada Lovelace', email: 'ada@example.com', topic: 'project', message: 'Bonjour, je voudrais discuter d’un projet.', locale: 'fr', website: '', startedAt: String(NOW - MIN_FILL_MS - 2000) }
-
-function deps(over: Partial<ContactDeps> = {}): ContactDeps & { save: ReturnType<typeof vi.fn>; notify: ReturnType<typeof vi.fn> } {
-  return {
-    now: () => NOW, hashIp: (ip: string) => `h(${ip})`, countRecent: vi.fn(async () => 0),
-    save: vi.fn(async () => {}), notify: vi.fn(async () => {}), ...over,
-  } as never
-}
-
-describe('processContact', () => {
-  it('cas nominal : enregistre puis notifie', async () => {
-    const d = deps()
-    expect(await processContact(base, '1.1.1.1', d)).toEqual({ status: 'ok' })
-    expect(d.save).toHaveBeenCalledTimes(1)
-    expect(d.save.mock.calls[0]![0]).toMatchObject({ name: 'Ada Lovelace', ipHash: 'h(1.1.1.1)', locale: 'fr' })
-    expect(d.notify).toHaveBeenCalledTimes(1)
-  })
-  it('saisie invalide → erreurs par champ, rien n’est enregistré', async () => {
-    const d = deps()
-    const r = await processContact({ ...base, message: 'court' }, '1.1.1.1', d)
-    expect(r).toMatchObject({ status: 'invalid', fieldErrors: { message: 'tooShort' } })
-    expect(d.save).not.toHaveBeenCalled()
-  })
-  it('honeypot rempli → succès silencieux, rien enregistré', async () => {
-    const d = deps()
-    expect(await processContact({ ...base, website: 'http://spam' }, '1.1.1.1', d)).toEqual({ status: 'ok' })
-    expect(d.save).not.toHaveBeenCalled()
-  })
-  it('soumission trop rapide (< 3 s) → succès silencieux', async () => {
-    const d = deps()
-    expect(await processContact({ ...base, startedAt: String(NOW - 1000) }, '1.1.1.1', d)).toEqual({ status: 'ok' })
-    expect(d.save).not.toHaveBeenCalled()
-  })
-  it('sans startedAt (JS désactivé) → pas de time-trap, message enregistré', async () => {
-    const d = deps()
-    const { startedAt: _drop, ...noTs } = base
-    expect(await processContact(noTs, '1.1.1.1', d)).toEqual({ status: 'ok' })
-    expect(d.save).toHaveBeenCalledTimes(1)
-  })
-  it('limite de débit atteinte → rate_limited', async () => {
-    const d = deps({ countRecent: vi.fn(async () => RATE_MAX) })
-    expect(await processContact(base, '1.1.1.1', d)).toEqual({ status: 'rate_limited' })
-    expect(d.save).not.toHaveBeenCalled()
-  })
-  it('échec d’enregistrement → error, pas de notification', async () => {
-    const d = deps({ save: vi.fn(async () => { throw new Error('db down') }) })
-    expect(await processContact(base, '1.1.1.1', d)).toEqual({ status: 'error' })
-    expect(d.notify).not.toHaveBeenCalled()
-  })
-  it('échec de notification → toujours ok', async () => {
-    const d = deps({ notify: vi.fn(async () => { throw new Error('smtp') }) })
-    expect(await processContact(base, '1.1.1.1', d)).toEqual({ status: 'ok' })
-  })
-})
-```
-Run → **FAIL**.
-
-- [ ] **Step 2 : Implémenter**
-
-`schema.ts` :
-```ts
-import { z, type ZodError } from 'zod'
-
-export const CONTACT_TOPICS = ['project', 'ai', 'job', 'other'] as const
-
-export const contactSchema = z.object({
-  name: z.string({ error: 'required' }).trim().min(2, { error: 'tooShort' }).max(80, { error: 'tooLong' }),
-  email: z.string({ error: 'required' }).trim().max(160, { error: 'tooLong' }).pipe(z.email({ error: 'emailInvalid' })),
-  topic: z.enum(CONTACT_TOPICS, { error: 'required' }),
-  message: z.string({ error: 'required' }).trim().min(10, { error: 'tooShort' }).max(2000, { error: 'tooLong' }),
-  locale: z.enum(['fr', 'en']),
-  website: z.string().optional().default(''), // honeypot : contrôlé dans processContact
-  startedAt: z.coerce.number().optional(),
-})
-export type ContactInput = z.infer<typeof contactSchema>
-export type ContactFieldErrors = Partial<Record<'name' | 'email' | 'topic' | 'message', 'required' | 'emailInvalid' | 'tooShort' | 'tooLong'>>
-
-export function mapZodErrors(error: ZodError): ContactFieldErrors {
-  const out: ContactFieldErrors = {}
-  for (const issue of error.issues) {
-    const key = issue.path[0]
-    if (key === 'name' || key === 'email' || key === 'topic' || key === 'message') {
-      out[key] ??= (['required', 'emailInvalid', 'tooShort', 'tooLong'] as const).find((c) => c === issue.message) ?? 'required'
-    }
-  }
-  return out
-}
-```
-> **Zod 4** : l'API d'erreur personnalisée est `{ error: '…' }` et `z.email()` est top-level. Si un test échoue à cause d'un changement d'API, ajuster **le schéma**, pas les tests (les codes attendus sont le contrat).
-`process.ts` :
-```ts
-import { contactSchema, mapZodErrors, type ContactFieldErrors, type ContactInput } from './schema'
-
+// contact-policy.ts
 export const MIN_FILL_MS = 3000
 export const RATE_WINDOW_MS = 10 * 60 * 1000
 export const RATE_MAX = 3
+// CONTACT_TOPICS et ContactTopic : src/domain/contact/contact-topic.ts (créés en T4)
+export function isSubmittedTooFast(startedAt: number | undefined, now: number): boolean // undefined (JS désactivé) → false
+export function isRateLimited(recentCount: number): boolean                             // recentCount >= RATE_MAX
 
-export type SavedContact = Pick<ContactInput, 'name' | 'email' | 'topic' | 'message' | 'locale'> & { ipHash: string }
-export type ContactDeps = {
-  now(): number
-  hashIp(ip: string): string
-  countRecent(ipHash: string, sinceMs: number): Promise<number>
-  save(doc: SavedContact): Promise<void>
-  notify?(doc: SavedContact): Promise<void>
+// contact-draft.ts
+export type RawContactInput = Readonly<Record<string, unknown>>
+export type ContactDraft = { readonly name: string; readonly email: string; readonly topic: ContactTopic; readonly message: string; readonly locale: Locale }
+export type ContactFieldError = 'required' | 'emailInvalid' | 'tooShort' | 'tooLong'
+export type ContactFieldErrors = Partial<Record<'name' | 'email' | 'topic' | 'message', ContactFieldError>>
+export function validateContactDraft(raw: RawContactInput): Result<ContactDraft, ContactFieldErrors>
+export function isHoneypotFilled(raw: RawContactInput): boolean   // champ `website` non vide
+export function readStartedAt(raw: RawContactInput): number | undefined
+```
+- Produces — **application** :
+```ts
+// ports
+export type NewContactMessage = ContactDraft & { readonly ipHash: string }
+export interface ContactMessageRepository { save(message: NewContactMessage): Promise<void>; countSince(ipHash: string, sinceEpochMs: number): Promise<number> }
+export interface ContactNotifier { notify(message: NewContactMessage): Promise<void> }
+export interface IpHasher { hash(ip: string): string }
+
+// submit-contact-message.ts
+export type SubmitContactResult = { status: 'ok' } | { status: 'invalid'; fieldErrors: ContactFieldErrors } | { status: 'rate_limited' } | { status: 'error' }
+export class SubmitContactMessage {
+  constructor(deps: { messages: ContactMessageRepository; hasher: IpHasher; clock: Clock; notifier?: ContactNotifier })
+  execute(input: { raw: RawContactInput; ip: string }): Promise<SubmitContactResult>
 }
-export type ContactResult =
+```
+- Produces — **infrastructure** : `PayloadContactMessageRepository(client: () => Promise<Payload>)`, `ResendContactNotifier(deps: { apiKey: string; from: string; fallbackTo: string; resolveRecipient: () => Promise<string | null> })`, `Sha256IpHasher(salt: string)`.
+- Produces — **composition** : `getContactUseCases(): { submitContactMessage: SubmitContactMessage }`.
+- Produces — **app** : `submitContact(previous: ContactFormState, formData: FormData): Promise<ContactFormState>` (`'use server'`) ; `clientIp(headers: Headers): string`.
+- Produces — **présentation** : `type ContactFormState = { status: 'idle' } | SubmitContactResult` ; `type ContactFormAction = (previous: ContactFormState, formData: FormData) => Promise<ContactFormState>` ; `Contact({ site, submitAction })` ; `ContactForm({ locale, action })` ; clés `contact` : `eyebrow`, `title`, `intro`, `fields.name|email|topic|message`, `topics.project|ai|job|other`, `submit`, `sending`, `success`, `error`, `rateLimited`, `details.title|email|linkedin|github|location|phone`, `honeypot`
+
+- [ ] **Step 1 : Tests du domaine (échouent)**
+
+`tests/unit/domain/contact-draft.test.ts` :
+```ts
+import { describe, expect, it } from 'vitest'
+import { isHoneypotFilled, readStartedAt, validateContactDraft } from '@/domain'
+
+const valid = { name: 'Ada Lovelace', email: 'ada@example.com', topic: 'project', message: 'Bonjour, je voudrais discuter d’un projet.', locale: 'fr' }
+
+describe('validateContactDraft', () => {
+  it('accepte une saisie valide et nettoie les espaces', () => {
+    const result = validateContactDraft({ ...valid, name: '  Ada Lovelace  ' })
+    expect(result).toEqual({ ok: true, value: { ...valid } })
+  })
+
+  it('remonte un code d’erreur par champ invalide', () => {
+    const result = validateContactDraft({ ...valid, name: 'A', email: 'nope', message: 'court' })
+    expect(result).toEqual({ ok: false, error: { name: 'tooShort', email: 'emailInvalid', message: 'tooShort' } })
+  })
+
+  it('signale un champ manquant comme required', () => {
+    const result = validateContactDraft({ ...valid, name: undefined })
+    expect(result.ok === false && result.error.name).toBe('required')
+  })
+
+  it('signale un message trop long', () => {
+    const result = validateContactDraft({ ...valid, message: 'x'.repeat(2001) })
+    expect(result.ok === false && result.error.message).toBe('tooLong')
+  })
+
+  it('rejette un sujet hors liste', () => {
+    const result = validateContactDraft({ ...valid, topic: 'spam' })
+    expect(result.ok === false && result.error.topic).toBe('required')
+  })
+
+  it('retombe sur la langue par défaut si la locale est inconnue', () => {
+    const result = validateContactDraft({ ...valid, locale: 'de' })
+    expect(result.ok && result.value.locale).toBe('fr')
+  })
+})
+
+describe('anti-spam helpers', () => {
+  it('détecte le honeypot rempli', () => {
+    expect(isHoneypotFilled({ website: 'http://spam' })).toBe(true)
+    expect(isHoneypotFilled({ website: '  ' })).toBe(false)
+    expect(isHoneypotFilled({})).toBe(false)
+  })
+  it('lit startedAt seulement s’il est numérique', () => {
+    expect(readStartedAt({ startedAt: '1700000000000' })).toBe(1_700_000_000_000)
+    expect(readStartedAt({ startedAt: 'abc' })).toBeUndefined()
+    expect(readStartedAt({})).toBeUndefined()
+  })
+})
+```
+`tests/unit/domain/contact-policy.test.ts` : `isSubmittedTooFast(now - 1000, now)` → `true` ; `isSubmittedTooFast(now - MIN_FILL_MS - 1, now)` → `false` ; `isSubmittedTooFast(undefined, now)` → `false` ; `isRateLimited(RATE_MAX - 1)` → `false` ; `isRateLimited(RATE_MAX)` → `true`.
+Run → **FAIL**. Implémenter `contact-policy.ts` (constantes + 2 fonctions d'une ligne) et `contact-draft.ts` :
+```ts
+import { DEFAULT_LOCALE, isLocale, type Locale } from '../locale'
+import { err, ok, type Result } from '../shared/result'
+import { CONTACT_TOPICS, type ContactTopic } from './contact-topic'
+
+export type RawContactInput = Readonly<Record<string, unknown>>
+export type ContactDraft = { readonly name: string; readonly email: string; readonly topic: ContactTopic; readonly message: string; readonly locale: Locale }
+export type ContactFieldError = 'required' | 'emailInvalid' | 'tooShort' | 'tooLong'
+export type ContactFieldErrors = Partial<Record<'name' | 'email' | 'topic' | 'message', ContactFieldError>>
+
+const LIMITS = { name: { min: 2, max: 80 }, email: { max: 160 }, message: { min: 10, max: 2000 } } as const
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+const text = (raw: RawContactInput, key: string): string => (typeof raw[key] === 'string' ? (raw[key] as string).trim() : '')
+
+function checkLength(value: string, min: number, max: number): ContactFieldError | null {
+  if (value === '') return 'required'
+  if (value.length < min) return 'tooShort'
+  return value.length > max ? 'tooLong' : null
+}
+
+function checkEmail(value: string): ContactFieldError | null {
+  const length = checkLength(value, 1, LIMITS.email.max)
+  if (length) return length
+  return EMAIL_PATTERN.test(value) ? null : 'emailInvalid'
+}
+
+const fieldError = (field: keyof ContactFieldErrors, error: ContactFieldError | null): ContactFieldErrors => (error ? { [field]: error } : {})
+
+export function validateContactDraft(raw: RawContactInput): Result<ContactDraft, ContactFieldErrors> {
+  const [name, email, topic, message] = [text(raw, 'name'), text(raw, 'email'), text(raw, 'topic'), text(raw, 'message')]
+  const errors: ContactFieldErrors = {
+    ...fieldError('name', checkLength(name, LIMITS.name.min, LIMITS.name.max)),
+    ...fieldError('email', checkEmail(email)),
+    ...fieldError('topic', (CONTACT_TOPICS as readonly string[]).includes(topic) ? null : 'required'),
+    ...fieldError('message', checkLength(message, LIMITS.message.min, LIMITS.message.max)),
+  }
+  if (Object.keys(errors).length > 0) return err(errors)
+  const locale = isLocale(raw.locale) ? raw.locale : DEFAULT_LOCALE
+  return ok({ name, email, topic: topic as ContactTopic, message, locale })
+}
+
+export const isHoneypotFilled = (raw: RawContactInput): boolean => text(raw, 'website') !== ''
+
+export function readStartedAt(raw: RawContactInput): number | undefined {
+  const value = Number(raw.startedAt)
+  return raw.startedAt !== undefined && raw.startedAt !== '' && Number.isFinite(value) ? value : undefined
+}
+```
+Run : `pnpm test tests/unit/domain` → **PASS** (ajuster l'implémentation, jamais les codes attendus).
+
+- [ ] **Step 2 : Cas d'usage `SubmitContactMessage` avec fakes (échouent)**
+
+`tests/support/in-memory-contact-message-repository.ts` : `class InMemoryContactMessageRepository implements ContactMessageRepository` (tableau `saved`, `recentCount` réglable, option `failOnSave`). `tests/support/fake-ip-hasher.ts` : `{ hash: (ip) => 'h(' + ip + ')' }`.
+`tests/unit/application/submit-contact-message.test.ts` :
+```ts
+import { describe, expect, it } from 'vitest'
+import { SubmitContactMessage } from '@/application/contact/submit-contact-message'
+import { MIN_FILL_MS, RATE_MAX } from '@/domain'
+import { fakeIpHasher } from '../../support/fake-ip-hasher'
+import { fixedClock } from '../../support/fixed-clock'
+import { InMemoryContactMessageRepository } from '../../support/in-memory-contact-message-repository'
+
+const NOW = '2026-09-30T12:00:00Z'
+const nowMs = new Date(NOW).getTime()
+const validRaw = { name: 'Ada Lovelace', email: 'ada@example.com', topic: 'project', message: 'Bonjour, je voudrais discuter d’un projet.', locale: 'fr', website: '', startedAt: String(nowMs - MIN_FILL_MS - 2000) }
+
+function setup(over: { recentCount?: number; failOnSave?: boolean; notify?: () => Promise<void> } = {}) {
+  const messages = new InMemoryContactMessageRepository({ recentCount: over.recentCount ?? 0, failOnSave: over.failOnSave ?? false })
+  const notified: unknown[] = []
+  const notifier = { notify: over.notify ?? (async (m: unknown) => { notified.push(m) }) }
+  const useCase = new SubmitContactMessage({ messages, hasher: fakeIpHasher, clock: fixedClock(NOW), notifier })
+  return { useCase, messages, notified }
+}
+
+describe('SubmitContactMessage', () => {
+  it('enregistre puis notifie une saisie valide', async () => {
+    const { useCase, messages, notified } = setup()
+    expect(await useCase.execute({ raw: validRaw, ip: '1.1.1.1' })).toEqual({ status: 'ok' })
+    expect(messages.saved).toHaveLength(1)
+    expect(messages.saved[0]).toMatchObject({ name: 'Ada Lovelace', ipHash: 'h(1.1.1.1)', locale: 'fr' })
+    expect(notified).toHaveLength(1)
+  })
+
+  it('renvoie les erreurs par champ sans rien enregistrer', async () => {
+    const { useCase, messages } = setup()
+    const result = await useCase.execute({ raw: { ...validRaw, message: 'court' }, ip: '1.1.1.1' })
+    expect(result).toEqual({ status: 'invalid', fieldErrors: { message: 'tooShort' } })
+    expect(messages.saved).toHaveLength(0)
+  })
+
+  it('répond ok en silence au honeypot rempli, sans rien enregistrer', async () => {
+    const { useCase, messages } = setup()
+    expect(await useCase.execute({ raw: { ...validRaw, website: 'http://spam' }, ip: '1.1.1.1' })).toEqual({ status: 'ok' })
+    expect(messages.saved).toHaveLength(0)
+  })
+
+  it('répond ok en silence à une soumission trop rapide', async () => {
+    const { useCase, messages } = setup()
+    expect(await useCase.execute({ raw: { ...validRaw, startedAt: String(nowMs - 1000) }, ip: '1.1.1.1' })).toEqual({ status: 'ok' })
+    expect(messages.saved).toHaveLength(0)
+  })
+
+  it("n'applique pas le time-trap sans startedAt (JS désactivé)", async () => {
+    const { useCase, messages } = setup()
+    const { startedAt: _omitted, ...withoutTimestamp } = validRaw
+    expect(await useCase.execute({ raw: withoutTimestamp, ip: '1.1.1.1' })).toEqual({ status: 'ok' })
+    expect(messages.saved).toHaveLength(1)
+  })
+
+  it('refuse au-delà de la limite de débit', async () => {
+    const { useCase, messages } = setup({ recentCount: RATE_MAX })
+    expect(await useCase.execute({ raw: validRaw, ip: '1.1.1.1' })).toEqual({ status: 'rate_limited' })
+    expect(messages.saved).toHaveLength(0)
+  })
+
+  it("renvoie error si l'enregistrement échoue, sans notifier", async () => {
+    const { useCase, notified } = setup({ failOnSave: true })
+    expect(await useCase.execute({ raw: validRaw, ip: '1.1.1.1' })).toEqual({ status: 'error' })
+    expect(notified).toHaveLength(0)
+  })
+
+  it('reste ok si la notification échoue (le message est déjà enregistré)', async () => {
+    const { useCase } = setup({ notify: async () => { throw new Error('smtp') } })
+    expect(await useCase.execute({ raw: validRaw, ip: '1.1.1.1' })).toEqual({ status: 'ok' })
+  })
+})
+```
+Run → **FAIL**. Implémenter `src/application/contact/submit-contact-message.ts` — méthodes courtes, une responsabilité chacune :
+```ts
+import { isHoneypotFilled, isRateLimited, isSubmittedTooFast, readStartedAt, RATE_WINDOW_MS, validateContactDraft, type ContactFieldErrors, type RawContactInput } from '@/domain'
+import type { Clock } from '../ports/clock'
+import type { ContactMessageRepository, NewContactMessage } from '../ports/contact-message-repository'
+import type { ContactNotifier } from '../ports/contact-notifier'
+import type { IpHasher } from '../ports/ip-hasher'
+
+export type SubmitContactResult =
   | { status: 'ok' }
   | { status: 'invalid'; fieldErrors: ContactFieldErrors }
   | { status: 'rate_limited' }
   | { status: 'error' }
 
-export async function processContact(raw: unknown, ip: string, deps: ContactDeps): Promise<ContactResult> {
-  const parsed = contactSchema.safeParse(raw)
-  if (!parsed.success) return { status: 'invalid', fieldErrors: mapZodErrors(parsed.error) }
-  const input = parsed.data
+type Dependencies = { messages: ContactMessageRepository; hasher: IpHasher; clock: Clock; notifier?: ContactNotifier }
 
-  // Anti-spam silencieux : on répond « ok » au bot pour ne lui donner aucun indice.
-  if (input.website.trim() !== '') return { status: 'ok' }
-  if (input.startedAt !== undefined && deps.now() - input.startedAt < MIN_FILL_MS) return { status: 'ok' }
+export class SubmitContactMessage {
+  constructor(private readonly deps: Dependencies) {}
 
-  const ipHash = deps.hashIp(ip)
-  if ((await deps.countRecent(ipHash, deps.now() - RATE_WINDOW_MS)) >= RATE_MAX) return { status: 'rate_limited' }
+  async execute(input: { raw: RawContactInput; ip: string }): Promise<SubmitContactResult> {
+    const draft = validateContactDraft(input.raw)
+    if (!draft.ok) return { status: 'invalid', fieldErrors: draft.error }
+    if (this.looksLikeABot(input.raw)) return { status: 'ok' } // succès silencieux : aucun indice pour le bot
 
-  const doc: SavedContact = { name: input.name, email: input.email, topic: input.topic, message: input.message, locale: input.locale, ipHash }
-  try {
-    await deps.save(doc)
-  } catch {
-    return { status: 'error' }
+    const ipHash = this.deps.hasher.hash(input.ip)
+    if (await this.isOverRateLimit(ipHash)) return { status: 'rate_limited' }
+
+    return this.store({ ...draft.value, ipHash })
   }
-  try {
-    await deps.notify?.(doc)
-  } catch {
-    /* la notification est best-effort : le message est déjà enregistré */
+
+  private looksLikeABot(raw: RawContactInput): boolean {
+    return isHoneypotFilled(raw) || isSubmittedTooFast(readStartedAt(raw), this.deps.clock.now())
   }
-  return { status: 'ok' }
+
+  private async isOverRateLimit(ipHash: string): Promise<boolean> {
+    return isRateLimited(await this.deps.messages.countSince(ipHash, this.deps.clock.now() - RATE_WINDOW_MS))
+  }
+
+  private async store(message: NewContactMessage): Promise<SubmitContactResult> {
+    try {
+      await this.deps.messages.save(message)
+    } catch {
+      return { status: 'error' }
+    }
+    await this.notifyBestEffort(message)
+    return { status: 'ok' }
+  }
+
+  private async notifyBestEffort(message: NewContactMessage): Promise<void> {
+    try {
+      await this.deps.notifier?.notify(message)
+    } catch {
+      // Best-effort : le message est déjà en base, la notification ne doit pas faire échouer l'envoi.
+    }
+  }
 }
 ```
-`ip.ts` :
+Créer les 3 ports (interfaces ci-dessus). Run : `pnpm test tests/unit/application` → **PASS**.
+
+- [ ] **Step 3 : Adaptateurs infrastructure**
+
+`tests/unit/infrastructure/sha256-ip-hasher.test.ts` : `hash` est déterministe, fait 32 caractères hexadécimaux, change avec le sel **et** avec l'IP. `src/infrastructure/contact/sha256-ip-hasher.ts` :
 ```ts
 import { createHash } from 'node:crypto'
+import type { IpHasher } from '@/application/ports/ip-hasher'
 
-export function hashIp(ip: string, salt: string): string {
-  return createHash('sha256').update(`${salt}:${ip}`).digest('hex').slice(0, 32)
-}
-export function clientIp(headers: Headers): string {
-  return headers.get('x-forwarded-for')?.split(',')[0]?.trim() || headers.get('x-real-ip')?.trim() || '0.0.0.0'
+const HASH_LENGTH = 32
+
+export class Sha256IpHasher implements IpHasher {
+  constructor(private readonly salt: string) {}
+
+  hash(ip: string): string {
+    return createHash('sha256').update(`${this.salt}:${ip}`).digest('hex').slice(0, HASH_LENGTH)
+  }
 }
 ```
-`deps.ts` : `buildDeps(payload)` — `countRecent` = `payload.count({ collection:'messages', where:{ and:[{ ipHash:{ equals } }, { createdAt:{ greater_than: new Date(since).toISOString() } }] }, overrideAccess:true })` ; `save` = `payload.create({ collection:'messages', data: doc, overrideAccess:true, context:{ disableRevalidate:true } })` ; `notify` défini **seulement si** `RESEND_API_KEY` : `new Resend(key).emails.send({ from: process.env.CONTACT_FROM, to: (site.contact.contactTo ?? process.env.CONTACT_TO), replyTo: doc.email, subject: `[Portfolio] ${doc.topic} — ${doc.name}`, text: … })` — **texte brut uniquement** (aucune injection HTML), destinataire : `contactTo` est lu **côté serveur** par `payload.findGlobal({ slug: 'site', overrideAccess: true })` (le `SiteVM` public ne l'expose volontairement pas), repli `process.env.CONTACT_TO`, jamais exposé au client.
-`action.ts` : `'use server'` ; `submitContact(_prev, formData)` : `const h = await headers()`, `getPayload({ config })`, `processContact(Object.fromEntries(formData), clientIp(h), buildDeps(payload))` ; renvoie le `ContactResult`.
-Run : `pnpm test` → **PASS**.
+`payload-contact-message-repository.ts` : `save` = `payload.create({ collection: 'messages', data: message, overrideAccess: true, context: { disableRevalidate: true } })` ; `countSince` = `payload.count({ collection: 'messages', where: { and: [{ ipHash: { equals: ipHash } }, { createdAt: { greater_than: new Date(sinceEpochMs).toISOString() } }] }, overrideAccess: true })` → `totalDocs`.
+`resend-contact-notifier.ts` : n'envoie que du **texte brut** (aucune injection HTML) via `new Resend(apiKey).emails.send({ from, to, replyTo: message.email, subject: '[Portfolio] <topic> — <name>', text })` ; le destinataire = `await resolveRecipient()` (le composition root lui passe une fonction qui lit `contactTo` du global `site` avec `overrideAccess: true`) sinon `fallbackTo` (`CONTACT_TO`).
 
-- [ ] **Step 3 : Test d'intégration (base réelle)**
+- [ ] **Step 4 : Composition, action serveur, IP client**
 
-`tests/integration/contact.int.test.ts` : avec `getPayload` réel et `buildDeps(payload)` sans `notify`, `ip = '203.0.113.7'` : (1) `processContact` valide (`startedAt: Date.now() - 5000`) ×3 → `ok` et **3 documents** `messages` avec le même `ipHash` ; (2) le 4ᵉ appel → `rate_limited` ; (3) `afterAll` supprime les messages de cet `ipHash` (`overrideAccess: true`).
+`src/composition/contact.ts` (`import 'server-only'`) :
+```ts
+export function getContactUseCases(): { submitContactMessage: SubmitContactMessage } // mémoïsé
+// notifier construit UNIQUEMENT si process.env.RESEND_API_KEY est défini ; sel = process.env.IP_HASH_SALT ?? ''
+```
+`src/composition/index.ts` : ajouter `export * from './contact'`.
+`tests/unit/app/client-ip.test.ts` : `clientIp(new Headers({ 'x-forwarded-for': '9.9.9.9, 10.0.0.1' }))` = `'9.9.9.9'` ; `x-real-ip` en repli ; `'0.0.0.0'` par défaut. `client-ip.ts` :
+```ts
+const UNKNOWN_IP = '0.0.0.0'
 
-- [ ] **Step 4 : UI**
+export function clientIp(headers: Headers): string {
+  return headers.get('x-forwarded-for')?.split(',')[0]?.trim() || headers.get('x-real-ip')?.trim() || UNKNOWN_IP
+}
+```
+`_actions/submit-contact.ts` :
+```ts
+'use server'
+import { headers } from 'next/headers'
+import { getContactUseCases } from '@/composition'
+import type { ContactFormState } from '@/presentation/components/sections/contact/ContactForm'
+import { clientIp } from './client-ip'
 
-`Contact.tsx` (serveur) : `Section id="contact"` ; grille `lg:grid-cols-12` : gauche (`col-span-5`) `SectionHeading` (`contact.eyebrow`, `contact.title`), `contact.intro`, carte verre `details` (e-mail `mailto:`, LinkedIn, GitHub, localisation, **téléphone seulement si `showPhone && phone`**, liens texte `↗`) ; droite (`col-span-7`) `<Glass variant="surface" class="p-6 md:p-8"><ContactForm locale /></Glass>`.
-`ContactForm` (client) : `useActionState(submitContact, { status: 'idle' })` ; `<form data-testid="contact-form" action={formAction} noValidate>` ; champs **avec labels visibles** au-dessus (`name` `autoComplete="name"`, `email` `type="email" autoComplete="email"`, `topic` `<select>`, `message` `<textarea rows={6}>`), champs cachés `locale` et `startedAt` (posé dans un `useEffect` → **pas de mismatch d'hydratation**), **honeypot** (`name="website"`, `tabIndex={-1}`, `autoComplete="off"`, `aria-hidden`, hors écran) ; erreurs **sous chaque champ** (élément d'erreur `id="${uid}-${champ}-error"` avec `uid = useId()` ; `aria-describedby` pointe dessus ; `aria-invalid`, texte `errors.<code>`) ; bouton `useFormStatus` (`contact.sending` + `disabled` pendant l'envoi) ; région statut `<div role="status" aria-live="polite" data-testid="contact-status">` : `success` (vert `--success`, puis reset du formulaire par `key`), `rateLimited`, `error` ; le focus va au premier champ en erreur après soumission invalide. Cibles ≥ 44px, `text-base` (16px) pour éviter le zoom iOS.
+export async function submitContact(_previous: ContactFormState, formData: FormData): Promise<ContactFormState> {
+  const { submitContactMessage } = getContactUseCases()
+  return submitContactMessage.execute({ raw: Object.fromEntries(formData), ip: clientIp(await headers()) })
+}
+```
+> `app` peut importer le **type** `ContactFormState` de la présentation ; **la présentation n'importe jamais `app`**.
+
+- [ ] **Step 5 : Test d'intégration (base réelle)**
+
+`tests/integration/contact.int.test.ts` : avec `getPayload` réel, `new PayloadContactMessageRepository(() => getPayload({ config }))`, `Sha256IpHasher('test')` et `SubmitContactMessage` sans notifier, IP `203.0.113.7` : (1) 3 soumissions valides (`startedAt = Date.now() - 5000`) → `ok` et **3 documents** `messages` de même `ipHash` ; (2) la 4ᵉ → `rate_limited` ; (3) `afterAll` supprime les messages de cet `ipHash` (`overrideAccess: true`, `context: { disableRevalidate: true }`).
+
+- [ ] **Step 6 : UI (présentation)**
+
+`Contact.tsx` (serveur, **signature `Contact({ site, submitAction })`**) : `Section id="contact"` ; grille `lg:grid-cols-12` : gauche (`col-span-5`) `SectionHeading` (`contact.eyebrow`, `contact.title`), `contact.intro`, carte verre `details` (e-mail `mailto:`, LinkedIn, GitHub, localisation, **téléphone seulement si `showPhone && phone`**, liens texte `↗`) ; droite (`col-span-7`) `<Glass variant="surface" class="p-6 md:p-8"><ContactForm locale={locale} action={submitAction} /></Glass>`.
+`ContactForm.tsx` (client) : **reçoit l'action en prop** (`action: ContactFormAction`), exporte `ContactFormState` et `ContactFormAction` ; `useActionState(action, { status: 'idle' })` ; `<form data-testid="contact-form" action={formAction} noValidate>` ; champs **avec labels visibles** au-dessus (`name` `autoComplete="name"`, `email` `type="email" autoComplete="email"`, `topic` `<select>` (options `CONTACT_TOPICS`), `message` `<textarea rows={6}>`), champs cachés `locale` et `startedAt` (posé dans un `useEffect` → **pas de mismatch d'hydratation**), **honeypot** (`name="website"`, `tabIndex={-1}`, `autoComplete="off"`, `aria-hidden`, hors écran) ; erreurs **sous chaque champ** (élément d'erreur `id="${uid}-${champ}-error"` avec `uid = useId()` ; `aria-describedby` pointe dessus ; `aria-invalid`, texte `errors.<code>`) ; bouton `useFormStatus` (`contact.sending` + `disabled` pendant l'envoi) ; région statut `<div role="status" aria-live="polite" data-testid="contact-status">` : `success` (vert `--success`, puis reset du formulaire par `key`), `rateLimited`, `error` ; le focus va au premier champ en erreur après soumission invalide. Cibles ≥ 44px, `text-base` (16px) pour éviter le zoom iOS. Extraire un petit composant `FormField` (label + contrôle + erreur) pour rester sous la limite de taille de fonction.
 `contact.json` FR : `eyebrow` « Contact », `title` « Discutons de votre projet », `intro` « Un projet, une question, une opportunité ? Écris-moi, je réponds rapidement. », `fields` (Nom, E-mail, Sujet, Message), `topics` (Un projet, IA générative, Opportunité pro, Autre), `submit` « Envoyer le message », `sending` « Envoi… », `success` « Merci ! Ton message est bien parti. », `error` « Le message n’a pas pu être envoyé. Réessaie ou écris-moi directement par e-mail. », `rateLimited` « Trop de messages en peu de temps. Réessaie dans quelques minutes. », `details` (Coordonnées, E-mail, LinkedIn, GitHub, Localisation, Téléphone), `honeypot` « Ne pas remplir » + EN.
 
-- [ ] **Step 5 : Test E2E**
+- [ ] **Step 7 : Test E2E**
 
 `tests/e2e/sections/contact.spec.ts` :
 ```ts
@@ -3389,17 +4083,16 @@ test('le téléphone n’apparaît pas par défaut', async ({ page }) => {
   await expect(page.locator('#contact')).not.toContainText(/\+33|0[67] ?\d\d/)
 })
 ```
-> Le test « envoi valide » soumet vite (< 3 s) → succès **silencieux** côté serveur (rien en base) : voulu, cela ne pollue pas la base de CI. L'enregistrement réel est couvert par le test d'intégration.
-Run : `pnpm test` + `pnpm test:int` + `pnpm build && pnpm e2e tests/e2e/sections/contact.spec.ts` → **PASS**. Revue visuelle 4 viewports (labels, erreurs, focus, cibles).
+> Le test « envoi valide » soumet vite (< 3 s) → succès **silencieux** côté cas d'usage (rien en base) : voulu, cela ne pollue pas la base de CI. L'enregistrement réel est couvert par le test d'intégration.
 
-- [ ] **Step 6 : Commit**
+- [ ] **Step 8 : Vérifier** — `pnpm test` **PASS** (dont `architecture.test.ts`), `pnpm test:int` **PASS**, `pnpm typecheck && pnpm lint` verts ; l'e2e du contact est exécuté par la porte de vague (`pnpm build && pnpm e2e tests/e2e/sections/contact.spec.ts`).
+
+- [ ] **Step 9 : Commit**
 
 ```bash
-git add src/lib/contact src/components/sections/Contact.tsx src/components/sections/contact src/messages/fr/contact.json src/messages/en/contact.json tests/unit/contact-schema.test.ts tests/unit/contact-process.test.ts tests/unit/contact-ip.test.ts tests/integration/contact.int.test.ts tests/e2e/sections/contact.spec.ts
-git commit -m "feat(contact): add validated contact form with honeypot, time-trap, rate limit and optional Resend notification"
+git add src/domain src/application src/infrastructure/cms/payload/payload-contact-message-repository.ts src/infrastructure/contact src/composition "src/app/(site)/[locale]/(shell)/_actions" src/presentation/components/sections/Contact.tsx src/presentation/components/sections/contact src/presentation/i18n/messages/fr/contact.json src/presentation/i18n/messages/en/contact.json tests/support tests/unit/domain/contact-draft.test.ts tests/unit/domain/contact-policy.test.ts tests/unit/application/submit-contact-message.test.ts tests/unit/infrastructure/sha256-ip-hasher.test.ts tests/unit/app/client-ip.test.ts tests/integration/contact.int.test.ts tests/e2e/sections/contact.spec.ts
+git commit -m "feat(contact): add layered contact flow (domain rules, use case, adapters, server action) with anti-spam"
 ```
-
----
 
 ## Task 17 : Suites E2E transverses — structure, responsive, a11y, i18n, mouvement, CMS, budget
 
@@ -3710,11 +4403,11 @@ git commit -m "test(e2e): add structure, responsive, a11y, i18n, motion, CMS and
 ## Task 18 : Docker, CI, SEO, documentation
 
 **Files :**
-- Create : `Dockerfile`, `.dockerignore`, `.github/workflows/ci.yml`, `src/app/robots.ts`, `src/app/sitemap.ts`, `src/components/seo/PersonJsonLd.tsx`, `README.md`, `docs/cms-guide.md`, `docs/deploy.md`, `tests/e2e/seo.spec.ts`
+- Create : `Dockerfile`, `.dockerignore`, `.github/workflows/ci.yml`, `src/app/robots.ts`, `src/app/sitemap.ts`, `src/presentation/components/seo/PersonJsonLd.tsx`, `README.md`, `docs/cms-guide.md`, `docs/deploy.md`, `tests/e2e/seo.spec.ts`
 - Modify : `docker-compose.yml` (ajoute les services `migrate` et `app`, profil `app`), `"src/app/(site)/[locale]/(shell)/page.tsx"` (injecte `<PersonJsonLd/>`), `"src/app/(site)/[locale]/(shell)/layout.tsx"` et `"…/projects/[slug]/page.tsx"` (garde `SKIP_BUILD_STATIC`)
 
 **Interfaces :**
-- Consumes : `getSite`, `getProjectSlugs` (T7) ; `routing` (T6) ; scripts `package.json` (T1)
+- Consumes : `getPortfolioUseCases().getSiteProfile` / `.listProjectRefs` (T7, via `@/composition`) ; `routing` (T6) ; scripts `package.json` (T1)
 - Produces : image Docker exécutable ; workflow CI ; `robots.txt`, `sitemap.xml` (home ×2 langues + chaque projet ×2 langues, `alternates.languages`), JSON-LD `Person` ; docs
 
 - [ ] **Step 1 : Build sans base (Docker) — garde `SKIP_BUILD_STATIC`**
@@ -3823,7 +4516,7 @@ jobs:
 - [ ] **Step 4 : SEO**
 
 `robots.ts` : `{ rules: [{ userAgent: '*', allow: '/', disallow: ['/admin', '/api'] }], sitemap: `${base}/sitemap.xml` }`.
-`sitemap.ts` : entrées `/fr`, `/en`, puis pour chaque slug `/fr/projects/<slug>` et `/en/projects/<slug>`, avec `alternates.languages`, `lastModified` = `updatedAt` du projet ; `base = process.env.NEXT_PUBLIC_SITE_URL`.
+`sitemap.ts` : entrées `/fr`, `/en`, puis, pour chaque `ProjectRef` de `listProjectRefs.execute()`, `/fr/projects/<slug>` et `/en/projects/<slug>`, avec `alternates.languages`, `lastModified` = `ref.updatedAt` ; `base = process.env.NEXT_PUBLIC_SITE_URL`.
 `PersonJsonLd.tsx` : `<script type="application/ld+json">` `{ "@context": "https://schema.org", "@type": "Person", name, jobTitle, url, sameAs: [linkedin, github], address: { "@type": "PostalAddress", addressLocality: 'Nanterre', addressCountry: 'FR' } }` — **jamais** téléphone ni e-mail. Échapper `<` dans le JSON (`.replace(/</g, '\\u003c')`).
 `tests/e2e/seo.spec.ts` : `/robots.txt` contient `Disallow: /admin` et `Sitemap:` ; `/sitemap.xml` contient `/fr`, `/en` et au moins un `/projects/` ; la home contient un JSON-LD `Person` valide (`JSON.parse`) **sans** `telephone` ni `email`.
 
@@ -3838,7 +4531,7 @@ jobs:
 - [ ] **Step 7 : Commit**
 
 ```bash
-git add Dockerfile .dockerignore docker-compose.yml .github README.md docs/cms-guide.md docs/deploy.md src/app/robots.ts src/app/sitemap.ts src/components/seo "src/app/(site)" tests/e2e/seo.spec.ts
+git add Dockerfile .dockerignore docker-compose.yml .github README.md docs/cms-guide.md docs/deploy.md src/app/robots.ts src/app/sitemap.ts src/presentation/components/seo "src/app/(site)" tests/e2e/seo.spec.ts
 git commit -m "chore: add Docker image, CI workflow, SEO (robots, sitemap, JSON-LD) and project documentation"
 ```
 
@@ -3854,7 +4547,8 @@ git commit -m "chore: add Docker image, CI workflow, SEO (robots, sitemap, JSON-
 3. **Sécurité** — access control Payload (lecture/écriture par rôle, brouillons), server action (validation, spam, exposition de `contactTo`), en-têtes, CORS/CSRF, XSS (JSON-LD, richtext), secrets/PII dans le repo (`git ls-files`, historique), dépendances.
 4. **Responsive & visuel** — débordements, chevauchements (chips/hero), cadre 4:5 sur petits écrans, nav/dock, tailles de texte, cohérence avec `MASTER.md` et `img/exemple-portfolio.jpg`, rendu Safari/Firefox (repli du verre).
 5. **Exactitude du contenu** — chaque phrase du seed FR/EN **rapprochée du CV** : aucun fait, chiffre ou technologie inventé ; EN fidèle ; dates ; liens (`BDenisss`) ; pas de témoignages/logos.
-6. **Conformité spec & qualité de code** — écarts vs spec/plan, code mort, duplications, fichiers trop gros, tokens bruts, emojis-icônes, types `any`, commentaires trompeurs.
+6. **Clean Architecture & clean code** — règle de dépendance au-delà du test (logique métier qui fuit dans un composant, une page, un hook ou une collection Payload ; adaptateur qui dépend d'un autre adaptateur ; cas d'usage anémique ou qui connaît l'infrastructure ; port mal découpé), SOLID/DIP, fonctions trop longues ou complexes, nommage, nombres magiques, commentaires qui disent *quoi*, code mort, duplications, `any`/`!`, `catch` muets, tests à base de mocks là où un fake suffit.
+7. **Conformité spec & plan** — écarts vs spec/plan, fichiers trop gros, tokens bruts, emojis-icônes.
 
 **Procédure :** chaque finding = `{ dimension, sévérité, fichier:ligne, preuve, correctif proposé }` ; **3 sceptiques indépendants** tentent de le réfuter (défaut « réfuté » si doute) ; survivants (≥ 2/3) → correctif minimal + **test qui échouait avant** ; boucle jusqu'à **2 tours consécutifs sans nouveau finding confirmé** ; puis un **critique de complétude** (« quel angle, viewport ou navigateur n'a pas été couvert ? »). Consigner le tout dans `docs/quality-report.md` (section « Revue adversariale »).
 
@@ -3881,6 +4575,8 @@ git ls-files | grep -E '^(img/|\.env$|media/)' ; echo "attendu : aucune ligne"
 git grep -nE '\+33|0[67][ .]?[0-9]{2}[ .]?[0-9]{2}' -- . ':!docs' ':!design-system' ; echo "attendu : aucune ligne (téléphone)"
 git log --format='%an <%ae>%n%B---' | grep -ci 'co-authored-by\|generated with' ; echo "attendu : 0"
 git log --format='%an <%ae>' | sort -u ; echo "attendu : uniquement BDenisss <bucspun.d@gmail.com>"
+pnpm exec vitest run tests/unit/architecture.test.ts ; echo "attendu : vert (règle de dépendance)"
+git grep -nE ': any\b|as any\b|<any>' -- src ':!src/infrastructure/cms/payload/payload-types.ts' ; echo "attendu : aucune ligne"
 ```
 - [ ] **Step 3 : Preuve visuelle** — captures finales 375/768/1024/1440 (FR et EN) de : hero (poster/orbe + `?__fixture=avatar`), services, stack, projets, page détail, parcours, contact, `/admin`.
 - [ ] **Step 4 : Push**
@@ -3909,7 +4605,9 @@ Si l'authentification échoue (identifiants Git Credential Manager invalides), *
 | §8 responsive, a11y, budgets | T9, T17, T19 |
 | §9 tests TDD, e2e, axe, CI, Docker, sécurité | T1–T4, T16, T17, T18, T19 |
 | §10 risques (proxy Next 16, Node 25, réfraction Chromium, perf, fidélité, lien GitHub, slugs icônes) | T6 + T17 (proxy), T1 (Node), T2 (réfraction), T10 + T17 (perf), T15 (fidélité), T8 (GitHub, icônes), T3 (icônes) |
+| Clean Architecture adaptée + clean code (exigence de Denis) | T1 (garde-fous ESLint + test d'architecture), T3–T7 et T16 (couches), T19 (revue dédiée) |
 | SEO (sitemap, robots, JSON-LD), docs | T18 |
 | Lighthouse (a11y ≥ 95, perf ≥ 85, CLS < 0,1) | T17 |
 
-**Cohérence des noms vérifiée :** `decideHeroMode`/`isLowPower` (T10) ↔ `hero.spec` (T11) ; `processContact`/`ContactDeps`/`MIN_FILL_MS`/`RATE_MAX` (T16) ↔ tests ; `groupStacksByCategory`/`computeStatValues`/`formatRange` (T7) ↔ T12–T14 ; `getHomeData`/`HomeData` (T7) ↔ `page.tsx` (T9) ; signatures de sections (T9) ↔ T11–T16 ; `stackSlug` du seed (T8) ↔ références des projets ; `createRevalidate*Hook` (T4) ↔ globals (T5).
+**Cohérence des noms vérifiée :** `decideHeroMode`/`isLowPower` (T10) ↔ `hero.spec` (T11) ; `SubmitContactMessage`/`ContactMessageRepository`/`MIN_FILL_MS`/`RATE_MAX` (T16) ↔ tests ; `groupStacksByCategory`/`computeCareerStats` (T7, domaine) ↔ T12–T14 ; `GetHomePage`/`HomePage`/`getPortfolioUseCases` (T7) ↔ `page.tsx` (T9) ; signatures de sections (T9) ↔ T11–T16 (dont `TechStack` et `Contact({ site, submitAction })`) ; `stackSlug` du seed (T8) ↔ références des projets ; `pathsToRevalidate` (T4, application) ↔ hooks Payload ; `CONTACT_TOPICS` (T4, domaine) ↔ collection `messages` et T16.
+
