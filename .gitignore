@@ -1,0 +1,46 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# next / build
+.next/
+out/
+build/
+dist/
+*.tsbuildinfo
+next-env.d.ts
+
+# payload
+.payload/
+/media/
+/src/payload-types.ts.bak
+
+# env & secrets
+.env
+.env.*
+!.env.example
+
+# local data
+/data/
+*.db
+*.sqlite
+
+# test output
+coverage/
+playwright-report/
+test-results/
+.vitest-cache/
+
+# os / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Sources locales de Denis (CV avec téléphone, photo, référence design) : jamais commités.
+# Le seed les charge dans le CMS depuis le disque.
+/img/
+
+# claude / agent scratch
+.claude/settings.local.json
