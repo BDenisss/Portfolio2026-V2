@@ -39,9 +39,9 @@ export function Nav({ name, jobTitle }: { name: string; jobTitle: string }) {
         >
           {initialsOf(name)}
         </span>
-        <span className="flex flex-col leading-tight">
+        <span className="flex flex-col leading-tight md:hidden lg:flex">
           <span className="font-display text-sm font-semibold text-[var(--ink)]">{name}</span>
-          <span className="hidden text-xs text-[var(--ink-muted)] md:block">{jobTitle}</span>
+          <span className="hidden text-xs text-[var(--ink-muted)] xl:block">{jobTitle}</span>
         </span>
       </Link>
       <ul className="hidden items-center gap-1 md:flex">
@@ -51,7 +51,7 @@ export function Nav({ name, jobTitle }: { name: string; jobTitle: string }) {
               href={hrefFor(id)}
               aria-current={active === id ? 'location' : undefined}
               className={cn(
-                'flex min-h-11 items-center rounded-full px-4 text-sm font-medium transition-colors duration-200',
+                'flex min-h-11 items-center rounded-full px-3 text-sm font-medium whitespace-nowrap transition-colors duration-200 lg:px-4',
                 active === id
                   ? 'bg-white text-[var(--ink)] shadow-sm'
                   : 'text-[var(--ink-muted)] hover:text-[var(--ink)]',
@@ -64,7 +64,7 @@ export function Nav({ name, jobTitle }: { name: string; jobTitle: string }) {
       </ul>
       <div className="flex items-center gap-2">
         <LangSwitch />
-        <div className="hidden lg:block">
+        <div className="hidden xl:block">
           <Button href={hrefFor('contact')} icon="arrow-up-right">
             {t('cta')}
           </Button>
