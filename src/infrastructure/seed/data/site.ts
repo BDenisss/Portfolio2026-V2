@@ -21,8 +21,9 @@ export const site = {
     ],
     ctaPrimary: { fr: 'Voir mes projets', en: 'View my work' },
     ctaSecondary: { fr: 'Télécharger mon CV', en: 'Download my CV' },
+    // `value` n'est pas localisé dans le CMS : il doit être identique en FR et en EN (le texte traduit va dans `label`).
     chips: [
-      { value: { fr: '3 ans', en: '3 years' }, label: { fr: 'd’alternance', en: 'of work-study' } },
+      { value: both('3'), label: { fr: 'ans d’alternance', en: 'years of work-study' } },
       { value: both('.NET · React'), label: { fr: '& IA générative', en: '& generative AI' } },
     ],
     trustedByTitle: { fr: 'Ils m’ont fait confiance', en: 'They trusted me' },
