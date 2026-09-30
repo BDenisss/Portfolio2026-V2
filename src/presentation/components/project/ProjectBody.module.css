@@ -1,0 +1,42 @@
+@layer components {
+  .body {
+    color: var(--ink-2);
+    font-size: 1.0625rem;
+    line-height: 1.75;
+    max-width: 65ch;
+  }
+  .body > * + * {
+    margin-top: var(--space-base);
+  }
+  .body h2,
+  .body h3 {
+    margin-top: var(--space-lg);
+    color: var(--ink);
+  }
+  .body a {
+    color: var(--accent-text);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .body ul,
+  .body ol {
+    padding-left: var(--space-md);
+  }
+  .body ul {
+    list-style: disc;
+  }
+  .body ol {
+    list-style: decimal;
+  }
+  .body blockquote {
+    border-left: 3px solid var(--accent-soft);
+    padding-left: var(--space-base);
+    color: var(--ink-muted);
+  }
+  .body code {
+    border-radius: 0.375rem;
+    background: var(--glass-fill);
+    padding: 0.125rem 0.375rem;
+    font-size: 0.9em;
+  }
+}

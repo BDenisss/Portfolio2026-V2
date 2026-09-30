@@ -1,1 +1,14 @@
-{}
+{
+  "eyebrow": "Tools & skills",
+  "title": "Technologies",
+  "categories": {
+    "language": "Languages",
+    "frontend": "Frontend",
+    "backend": "Backend",
+    "architecture": "Architecture",
+    "testing": "Testing",
+    "devops": "DevOps & Cloud",
+    "security": "Security",
+    "ai": "AI"
+  }
+}

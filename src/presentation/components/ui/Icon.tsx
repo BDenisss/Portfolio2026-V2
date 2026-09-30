@@ -1,4 +1,5 @@
 import {
+  ArrowLeft,
   ArrowUp,
   ArrowUpRight,
   Blocks,
@@ -45,6 +46,7 @@ const SERVICE_ICONS: Record<ServiceIconName, LucideIcon> = {
 }
 
 const UI_ICONS = {
+  'arrow-left': ArrowLeft,
   'arrow-up': ArrowUp,
   'arrow-up-right': ArrowUpRight,
   download: Download,

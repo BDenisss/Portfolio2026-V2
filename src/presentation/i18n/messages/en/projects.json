@@ -1,1 +1,19 @@
-{}
+{
+  "eyebrow": "Work",
+  "title": "Selected projects",
+  "filterLabel": "Filter by technology",
+  "filterAll": "All",
+  "empty": "No project for this technology.",
+  "more": "Show more projects",
+  "open": "View project",
+  "back": "All projects",
+  "client": "Client",
+  "year": "Year",
+  "live": "View the site",
+  "repo": "View the code",
+  "stacks": "Technologies",
+  "gallery": "Gallery",
+  "caseStudy": "Case study",
+  "previous": "Previous project",
+  "next": "Next project"
+}
