@@ -1,2 +1,5 @@
 export * from './locale'
 export * from './shared/result'
+export * from './shared/slug'
+export * from './service/service-icon'
+export * from './stack/stack'
