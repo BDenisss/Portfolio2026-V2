@@ -1,0 +1,10 @@
+{
+  "notFoundTitle": "Page not found",
+  "notFoundText": "This page doesn’t exist or has been moved.",
+  "backHome": "Back to home",
+  "generic": "Something went wrong. Please try again in a moment.",
+  "required": "This field is required.",
+  "emailInvalid": "Invalid email address.",
+  "tooShort": "Too short.",
+  "tooLong": "Too long."
+}

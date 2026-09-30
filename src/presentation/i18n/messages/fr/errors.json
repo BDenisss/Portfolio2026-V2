@@ -1,0 +1,10 @@
+{
+  "notFoundTitle": "Page introuvable",
+  "notFoundText": "Cette page n’existe pas ou a été déplacée.",
+  "backHome": "Retour à l’accueil",
+  "generic": "Une erreur est survenue. Réessaie dans un instant.",
+  "required": "Ce champ est obligatoire.",
+  "emailInvalid": "Adresse e-mail invalide.",
+  "tooShort": "Trop court.",
+  "tooLong": "Trop long."
+}
