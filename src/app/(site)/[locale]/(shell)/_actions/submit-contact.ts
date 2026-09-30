@@ -1,11 +1,16 @@
 'use server'
+import { headers } from 'next/headers'
+import { getContactUseCases } from '@/composition'
+import type { ContactFormState } from '@/presentation/components/sections/contact/ContactForm'
+import { clientIp } from './client-ip'
 
-type ContactFormState = { status: 'idle' } | { status: 'error' }
-
-// Stub : l'action réelle (validation, anti-spam, persistance) arrive avec la tâche Contact.
 export async function submitContact(
   _previous: ContactFormState,
-  _formData: FormData,
+  formData: FormData,
 ): Promise<ContactFormState> {
-  return { status: 'error' }
+  const { submitContactMessage } = getContactUseCases()
+  return submitContactMessage.execute({
+    raw: Object.fromEntries(formData),
+    ip: clientIp(await headers()),
+  })
 }

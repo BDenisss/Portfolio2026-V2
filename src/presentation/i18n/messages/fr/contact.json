@@ -1,1 +1,26 @@
-{}
+{
+  "eyebrow": "Contact",
+  "title": "Discutons de votre projet",
+  "intro": "Un projet, une question, une opportunité ? Écris-moi, je réponds rapidement.",
+  "fields": { "name": "Nom", "email": "E-mail", "topic": "Sujet", "message": "Message" },
+  "topics": {
+    "project": "Un projet",
+    "ai": "IA générative",
+    "job": "Opportunité pro",
+    "other": "Autre"
+  },
+  "submit": "Envoyer le message",
+  "sending": "Envoi…",
+  "success": "Merci ! Ton message est bien parti.",
+  "error": "Le message n’a pas pu être envoyé. Réessaie ou écris-moi directement par e-mail.",
+  "rateLimited": "Trop de messages en peu de temps. Réessaie dans quelques minutes.",
+  "details": {
+    "title": "Coordonnées",
+    "email": "E-mail",
+    "linkedin": "LinkedIn",
+    "github": "GitHub",
+    "location": "Localisation",
+    "phone": "Téléphone"
+  },
+  "honeypot": "Ne pas remplir"
+}

@@ -1,1 +1,26 @@
-{}
+{
+  "eyebrow": "Contact",
+  "title": "Let’s talk about your project",
+  "intro": "A project, a question, an opportunity? Write to me, I reply quickly.",
+  "fields": { "name": "Name", "email": "Email", "topic": "Subject", "message": "Message" },
+  "topics": {
+    "project": "A project",
+    "ai": "Generative AI",
+    "job": "Job opportunity",
+    "other": "Other"
+  },
+  "submit": "Send message",
+  "sending": "Sending…",
+  "success": "Thank you! Your message is on its way.",
+  "error": "The message could not be sent. Try again or write to me directly by email.",
+  "rateLimited": "Too many messages in a short time. Please try again in a few minutes.",
+  "details": {
+    "title": "Details",
+    "email": "Email",
+    "linkedin": "LinkedIn",
+    "github": "GitHub",
+    "location": "Location",
+    "phone": "Phone"
+  },
+  "honeypot": "Do not fill in"
+}
