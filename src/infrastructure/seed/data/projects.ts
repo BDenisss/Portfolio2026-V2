@@ -131,43 +131,4 @@ export const projects: readonly SeedProject[] = [
       ],
     },
   },
-  {
-    slug: 'ce-portfolio',
-    year: 2026,
-    client: 'Projet personnel',
-    featured: true,
-    repo: 'https://github.com/BDenisss/Portfolio2026-V2',
-    stacks: [
-      'next-js',
-      'react',
-      'typescript',
-      'payload-cms',
-      'tailwind-css',
-      'gsap',
-      'three-js',
-      'postgresql',
-      'docker',
-    ],
-    title: { fr: 'Ce portfolio', en: 'This portfolio' },
-    tagline: {
-      fr: 'Liquid Glass, hero cinématique et CMS bilingue.',
-      en: 'Liquid Glass, a cinematic hero and a bilingual CMS.',
-    },
-    summary: {
-      fr: 'Le site que vous parcourez : Next.js et Payload CMS, un design Liquid Glass et un contenu français/anglais administrable.',
-      en: 'The site you are browsing: Next.js and Payload CMS, a Liquid Glass design and editable French/English content.',
-    },
-    caseStudy: {
-      fr: [
-        'Application Next.js 16 avec Payload CMS embarqué et une base PostgreSQL : projets, technologies, services et parcours sont administrables, en français et en anglais.',
-        'Design Liquid Glass responsive, avec un hero cinématique animé par GSAP et Lenis et rendu avec react-three-fiber, conçu pour accueillir un avatar Memoji 3D généré avec Higgsfield.',
-        'Architecture en couches (domaine, application, infrastructure) inspirée de la Clean Architecture et de l’architecture hexagonale, avec des tests automatisés et un déploiement conteneurisé avec Docker.',
-      ],
-      en: [
-        'A Next.js 16 application with an embedded Payload CMS and a PostgreSQL database: projects, technologies, services and career are editable, in French and English.',
-        'A responsive Liquid Glass design, with a cinematic hero animated by GSAP and Lenis and rendered with react-three-fiber, designed to host a 3D Memoji avatar generated with Higgsfield.',
-        'A layered architecture (domain, application, infrastructure) inspired by Clean Architecture and hexagonal architecture, with automated tests and a Docker containerized deployment.',
-      ],
-    },
-  },
 ]

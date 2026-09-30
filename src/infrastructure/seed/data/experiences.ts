@@ -144,8 +144,8 @@ export const experiences: readonly SeedExperience[] = [
     kind: 'education',
     organization: 'IIM Digital School — Pôle Léonard de Vinci',
     location: 'Paris',
-    // Le CV ne donne que les années (2025 - 2026) : rentrée de septembre supposée, à confirmer dans l'admin.
-    start: '2025-09-01',
+    // Denis confirme 2024 - 2026 (le CV indique 2025 - 2026) ; seules les années sont connues : rentrée de septembre supposée.
+    start: '2024-09-01',
     end: '2026-09-01',
     stacks: [],
     role: {

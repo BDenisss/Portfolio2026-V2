@@ -42,11 +42,11 @@ describe('seed — références', () => {
   it('icônes de service dans la liste blanche', () => {
     for (const service of services) expect(SERVICE_ICON_NAMES).toContain(service.icon)
   })
-  it('4 services, 5 projets (≥ 3 mis en avant), slugs de projets uniques', () => {
+  it('4 services, 4 projets (≥ 3 mis en avant), slugs de projets uniques', () => {
     expect(services).toHaveLength(4)
-    expect(projects).toHaveLength(5)
+    expect(projects).toHaveLength(4)
     expect(projects.filter((project) => project.featured).length).toBeGreaterThanOrEqual(3)
-    expect(new Set(projects.map((project) => project.slug)).size).toBe(5)
+    expect(new Set(projects.map((project) => project.slug)).size).toBe(4)
   })
   it('5 entrées de parcours (4 expériences + la formation), clés uniques', () => {
     expect(experiences).toHaveLength(5)

@@ -58,7 +58,7 @@ describe.skipIf(!process.env.DATABASE_URI)('PayloadPortfolioRepository', () => {
     expect(home.services.length).toBeGreaterThanOrEqual(4)
     expect(home.stacks.length).toBeGreaterThanOrEqual(20)
     expect(home.stats.years).toBeGreaterThanOrEqual(3)
-    expect(home.projects.map((project) => project.slug)).toContain('ce-portfolio')
+    expect(home.projects.map((project) => project.slug)).toContain('plateforme-interne-bouygues')
   })
 
   it('rend le profil du site dans la langue demandée', async () => {

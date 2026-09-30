@@ -82,7 +82,7 @@ export const site = {
   contact: {
     email: 'bucspun.d@gmail.com',
     linkedin: 'https://www.linkedin.com/in/denis-bucspun-13198a23b/',
-    // Le CV indique « BDeniss » ; le compte réel (propriétaire de ce dépôt) est « BDenisss ».
+    // Compte GitHub confirmé par Denis : « BDenisss » (le CV indique « BDeniss »).
     github: 'https://github.com/BDenisss',
     showPhone: false,
   },

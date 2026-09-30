@@ -12,7 +12,7 @@ beforeAll(async () => {
 const titleOf = async (locale: 'fr' | 'en') => {
   const { docs } = await payload.find({
     collection: 'projects',
-    where: { slug: { equals: 'ce-portfolio' } },
+    where: { slug: { equals: 'plateforme-interne-bouygues' } },
     locale,
     limit: 1,
     overrideAccess: false,
@@ -27,7 +27,7 @@ describe.skipIf(!process.env.DATABASE_URI)('seed', () => {
     const second = await seedPortfolio(payload)
 
     expect(second).toEqual(first)
-    expect(second).toMatchObject({ projects: 5, services: 4, experiences: 5 })
+    expect(second).toMatchObject({ projects: 4, services: 4, experiences: 5 })
     expect(second.stacks).toBeGreaterThanOrEqual(28)
   })
 
@@ -35,8 +35,8 @@ describe.skipIf(!process.env.DATABASE_URI)('seed', () => {
     const french = await titleOf('fr')
     const english = await titleOf('en')
 
-    expect(french).toBe('Ce portfolio')
-    expect(english).toBe('This portfolio')
+    expect(french).toBe('Application interne web & mobile')
+    expect(english).toBe('Internal web & mobile application')
   })
 
   it('ne duplique pas les lignes de tableau entre les langues', async () => {

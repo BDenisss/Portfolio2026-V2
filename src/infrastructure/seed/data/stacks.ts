@@ -4,7 +4,7 @@ import type { SeedStack } from './types'
 /** Même fonction pour le seed et les tests : une référence de stack n'existe que par son slug. */
 export const stackSlug = (stack: SeedStack): string => stack.slug ?? slugify(stack.name)
 
-// Compétences des CV (FR et IA) ; les `simpleIconSlug` absents de simple-icons sont volontairement omis
+// Uniquement les technologies citées par les CV (FR et IA) ; les `simpleIconSlug` absents de simple-icons sont volontairement omis
 // (monogramme) : java→openjdk, et aucune icône pour C#, Twig, Azure, Entra ID, OAuth ni Codex.
 export const stacks: readonly SeedStack[] = [
   { name: 'TypeScript', category: 'language', simpleIconSlug: 'typescript', featured: true },
@@ -24,16 +24,12 @@ export const stacks: readonly SeedStack[] = [
   { name: 'Figma', category: 'frontend', simpleIconSlug: 'figma' },
   { name: 'PrimeNG', category: 'frontend', simpleIconSlug: 'primeng' },
   { name: 'Twig', category: 'frontend' },
-  { name: 'GSAP', category: 'frontend', simpleIconSlug: 'gsap' },
-  { name: 'Three.js', category: 'frontend', simpleIconSlug: 'threedotjs' },
 
   { name: '.NET', slug: 'dotnet', category: 'backend', simpleIconSlug: 'dotnet', featured: true },
   { name: 'ASP.NET Core', slug: 'aspnet-core', category: 'backend', simpleIconSlug: 'dotnet' },
   { name: 'Entity Framework Core', category: 'backend' },
   { name: 'Symfony', category: 'backend', simpleIconSlug: 'symfony' },
   { name: 'MySQL', category: 'backend', simpleIconSlug: 'mysql' },
-  { name: 'PostgreSQL', category: 'backend', simpleIconSlug: 'postgresql' },
-  { name: 'Payload CMS', category: 'backend', simpleIconSlug: 'payloadcms' },
 
   { name: 'Clean Architecture', category: 'architecture' },
   { name: 'DDD', category: 'architecture' },
