@@ -1,0 +1,91 @@
+@import 'tailwindcss';
+@import './tokens.css';
+@import './glass.css';
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-muted: var(--ink-muted);
+  --color-accent: var(--accent);
+  --color-accent-text: var(--accent-text);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-soft: var(--accent-soft);
+  --color-danger: var(--danger);
+  --color-success: var(--success);
+  --font-display: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-work-sans), ui-sans-serif, system-ui, sans-serif;
+  --breakpoint-xs: 375px;
+}
+
+html {
+  scroll-behavior: auto;
+  color-scheme: light;
+}
+body {
+  background: var(--bg);
+  color: var(--ink-2);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: 1.6;
+  background-image:
+    radial-gradient(60rem 40rem at 12% -10%, rgb(201 184 251 / 0.55), transparent 60%),
+    radial-gradient(50rem 36rem at 95% 8%, rgb(123 155 245 / 0.28), transparent 60%),
+    radial-gradient(48rem 40rem at 60% 100%, rgb(111 211 207 / 0.22), transparent 60%);
+  background-attachment: fixed;
+}
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  color: var(--ink);
+  letter-spacing: -0.03em;
+}
+:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 3px;
+  border-radius: 0.5rem;
+}
+.container-x {
+  width: 100%;
+  max-width: 75rem;
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
+@media (min-width: 768px) {
+  .container-x {
+    padding-inline: 1.5rem;
+  }
+}
+@media (min-width: 1024px) {
+  .container-x {
+    padding-inline: 2rem;
+  }
+}
+.section-y {
+  padding-block: var(--space-2xl);
+}
+@media (min-width: 1024px) {
+  .section-y {
+    padding-block: var(--space-3xl);
+  }
+}
+.sr-only-focusable:not(:focus):not(:focus-within) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+/* Révélations : masquées UNIQUEMENT quand JS est actif (contenu visible sans JS) */
+.js .reveal {
+  opacity: 0;
+  transform: translateY(16px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .js .reveal {
+    opacity: 1;
+    transform: none;
+  }
+}

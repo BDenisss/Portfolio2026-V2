@@ -1,0 +1,89 @@
+.glass {
+  position: relative;
+  isolation: isolate;
+  background: var(--glass-fill);
+  border: 1px solid var(--glass-border);
+  box-shadow:
+    var(--shadow-glass),
+    inset 0 1px 0 rgb(255 255 255 / 0.9),
+    inset 0 -1px 0 rgb(255 255 255 / 0.35);
+  border-radius: var(--radius-card);
+  transition:
+    transform 220ms var(--ease-glass),
+    box-shadow 220ms var(--ease-glass),
+    background-color 220ms var(--ease-glass);
+}
+.glass::before {
+  /* reflet spéculaire */
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(135deg, rgb(255 255 255 / 0.55) 0%, transparent 40%);
+}
+.glass::after {
+  /* liseré extérieur */
+  content: '';
+  position: absolute;
+  inset: -1px;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: 0 0 0 1px var(--glass-hairline);
+}
+.glass--surface {
+  border-radius: var(--radius-frame);
+}
+.glass--card {
+  border-radius: var(--radius-card);
+}
+.glass--pill,
+.glass--dock {
+  border-radius: var(--radius-pill);
+  background: var(--glass-fill-strong);
+}
+.glass[data-interactive] {
+  cursor: pointer;
+}
+.glass[data-interactive]:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 14px 40px rgb(70 50 140 / 0.14),
+    inset 0 1px 0 rgb(255 255 255 / 0.95);
+}
+.glass[data-interactive]:active {
+  transform: scale(0.985);
+}
+
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .glass {
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    backdrop-filter: blur(24px) saturate(160%);
+  }
+}
+/* Réfraction SVG : Chromium uniquement, jamais requise (drapeau posé par <RefractionFlag/>) */
+html[data-refract='on'] .glass[data-refract] {
+  -webkit-backdrop-filter: url(#lg-refract) blur(18px) saturate(170%);
+  backdrop-filter: url(#lg-refract) blur(18px) saturate(170%);
+}
+/* Repli opaque */
+@media (prefers-reduced-transparency: reduce) {
+  .glass,
+  .glass--pill,
+  .glass--dock {
+    background: var(--opaque-glass);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass {
+    background: var(--opaque-glass);
+  }
+}
+/* Scrim pour tout texte posé sur média */
+.glass-scrim {
+  background: linear-gradient(to top, rgb(11 11 20 / 0.62), rgb(11 11 20 / 0));
+}

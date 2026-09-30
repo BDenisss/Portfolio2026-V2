@@ -1,0 +1,38 @@
+:root {
+  --bg: #eeedf7;
+  --ink: #0b0b14;
+  --ink-2: #2e2e42;
+  --ink-muted: #55556b;
+  --accent: #8b5cf6;
+  --accent-text: #6d3fe0;
+  --accent-strong: #5b34d6;
+  --accent-soft: #c9b8fb;
+  --tint-amber: #f5c76b;
+  --tint-violet: #b9a2f8;
+  --tint-blue: #7b9bf5;
+  --tint-teal: #6fd3cf;
+  --danger: #c0263a;
+  --success: #0f7b5f;
+  --opaque-glass: #f9f8fc;
+
+  --glass-fill: rgb(255 255 255 / 0.62);
+  --glass-fill-strong: rgb(255 255 255 / 0.78);
+  --glass-fill-subtle: rgb(255 255 255 / 0.4);
+  --glass-border: rgb(255 255 255 / 0.7);
+  --glass-hairline: rgb(120 110 170 / 0.18);
+  --shadow-glass: 0 8px 32px rgb(70 50 140 / 0.1), 0 1px 2px rgb(70 50 140 / 0.06);
+
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-base: 1rem;
+  --space-md: 1.5rem;
+  --space-lg: 2rem;
+  --space-xl: 3rem;
+  --space-2xl: 4rem;
+  --space-3xl: 6rem;
+  --radius-card: 1.75rem;
+  --radius-chip: 1rem;
+  --radius-frame: 3rem;
+  --radius-pill: 999px;
+  --ease-glass: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
