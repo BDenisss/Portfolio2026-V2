@@ -1,6 +1,7 @@
 'use client'
 import { useCallback, useState, type RefObject } from 'react'
 import type { CinematicMedia, MediaAsset, VideoPair } from '@/domain'
+import type { Capabilities } from './capabilities'
 import { describeHeroMedia, pickVideoSources } from './hero-media'
 import { decideHeroMode, type HeroDecision, type HeroMedia, type HeroMode } from './hero-mode'
 import {
@@ -37,9 +38,18 @@ const initialDecision = (media: HeroMedia): HeroDecision => ({
   animate: false,
 })
 
+/** La fixture E2E force le chemin 3D quelle que soit la puissance du runner de CI ; reduced-motion reste respecté. */
+const ignoringPowerLimits = (capabilities: Capabilities): Capabilities => ({
+  ...capabilities,
+  saveData: false,
+  deviceMemory: undefined,
+  hardwareConcurrency: undefined,
+})
+
 function useHeroDecision(cinematic: CinematicMedia) {
-  const capabilities = useCapabilities()
+  const detected = useCapabilities()
   const fixtureModel = useFixtureModelUrl()
+  const capabilities = detected && fixtureModel ? ignoringPowerLimits(detected) : detected
   const media = describeHeroMedia(cinematic, fixtureModel)
   return {
     decision: capabilities ? decideHeroMode(capabilities, media) : initialDecision(media),
