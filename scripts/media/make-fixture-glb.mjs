@@ -35,7 +35,8 @@ function buildSphere() {
 const document = new Document()
 const buffer = document.createBuffer()
 const { positions, normals, indices } = buildSphere()
-const accessor = (type, array) => document.createAccessor().setType(type).setArray(array).setBuffer(buffer)
+const accessor = (type, array) =>
+  document.createAccessor().setType(type).setArray(array).setBuffer(buffer)
 
 const material = document
   .createMaterial('emoji')
@@ -48,7 +49,9 @@ const primitive = document
   .setAttribute('NORMAL', accessor('VEC3', new Float32Array(normals)))
   .setIndices(accessor('SCALAR', new Uint16Array(indices)))
   .setMaterial(material)
-const node = document.createNode('head').setMesh(document.createMesh('head').addPrimitive(primitive))
+const node = document
+  .createNode('head')
+  .setMesh(document.createMesh('head').addPrimitive(primitive))
 document.createScene('fixture').addChild(node)
 
 mkdirSync('public/fixtures', { recursive: true })

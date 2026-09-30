@@ -53,3 +53,6 @@ Thumbs.db
 
 # local preview config for the Claude desktop app
 /.claude/launch.json
+
+# Sorties des scripts d’optimisation média (scripts/media)
+/media-out/
