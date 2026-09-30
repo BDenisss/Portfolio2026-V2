@@ -1,6 +1,8 @@
-import type { CollectionBeforeValidateHook, CollectionConfig } from 'payload'
+import type { CollectionConfig } from 'payload'
 import { anyone, isAdmin } from '@/infrastructure/cms/payload/access'
-import { slugify, STACK_CATEGORIES, type StackCategory } from '@/domain'
+import { DEFAULT_ORDER } from '@/infrastructure/cms/payload/collections/constants'
+import { createFillSlugHook } from '@/infrastructure/cms/payload/hooks/fill-slug'
+import { STACK_CATEGORIES, type StackCategory } from '@/domain'
 
 const CATEGORY_LABELS: Record<StackCategory, string> = {
   language: 'Langages',
@@ -14,13 +16,9 @@ const CATEGORY_LABELS: Record<StackCategory, string> = {
 }
 
 const ICON_SLUG_PATTERN = /^[a-z0-9]+$/
-const DEFAULT_ORDER = 100
 
 const validateIconSlug = (value: unknown): true | string =>
   !value || ICON_SLUG_PATTERN.test(String(value)) ? true : 'Slug en minuscules, sans espaces.'
-
-const fillSlugFromName: CollectionBeforeValidateHook = ({ data }) =>
-  data && !data.slug && data.name ? { ...data, slug: slugify(String(data.name)) } : data
 
 export const Stacks: CollectionConfig = {
   slug: 'stacks',
@@ -30,7 +28,7 @@ export const Stacks: CollectionConfig = {
     defaultColumns: ['name', 'category', 'featured', 'order'],
     group: 'Contenu',
   },
-  hooks: { beforeValidate: [fillSlugFromName] },
+  hooks: { beforeValidate: [createFillSlugHook('name')] },
   fields: [
     { name: 'name', type: 'text', required: true },
     {
