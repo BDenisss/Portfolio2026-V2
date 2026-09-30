@@ -44,3 +44,9 @@ Thumbs.db
 
 # claude / agent scratch
 .claude/settings.local.json
+
+# machine-specific pnpm/junction settings
+/.npmrc
+
+# SDD workspace (ledger, briefs, reports)
+/.superpowers/

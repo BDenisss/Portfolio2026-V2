@@ -39,7 +39,7 @@ Chaque tâche les inclut implicitement.
 | Vague | Tâches (parallèles entre elles) | Porte de sortie |
 |---|---|---|
 | 0 | **T1** scaffold | `pnpm install && pnpm typecheck && pnpm test` |
-| 1 | **T2** fondations design · **T3** collections A · **T4** collections B + hooks | typecheck + test |
+| 1 | **T2** fondations design ∥ **T3** collections A, **puis T4** collections B + hooks (T4 importe `@/access`, `slugify` et `icon-names` de T3) | typecheck + test |
 | 2 | **T5** globals + config + migration · **T6** i18n + layout | typecheck + test + `pnpm build` |
 | 3 | **T7** couche contenu · **T8** seed | typecheck + test + `pnpm seed` |
 | 4a | **T9** primitives UI + nav + page shell | build + capture 4 viewports |
@@ -52,7 +52,7 @@ Chaque tâche les inclut implicitement.
 ## Task 1 : Scaffold, outillage, base Postgres
 
 **Files :**
-- Create : `package.json`, `pnpm-workspace.yaml` (uniquement si nécessaire), `tsconfig.json`, `next.config.ts`, `eslint.config.mjs`, `.prettierrc.json`, `.prettierignore`, `.gitattributes`, `.nvmrc`, `.env.example`, `docker-compose.yml`, `vitest.config.ts`, `vitest.int.config.ts`, `playwright.config.ts`, `tests/setup.ts`, `tests/unit/smoke.test.ts`, `src/lib/cn.ts`, `src/app/(payload)/**` (copié du gabarit officiel), `src/payload.config.ts` (minimal, remplacé en T5), `.github/workflows/ci.yml`
+- Create : `package.json`, `pnpm-workspace.yaml` (uniquement si nécessaire), `tsconfig.json`, `next.config.ts`, `postcss.config.mjs`, `tests/stubs/server-only.ts`, `eslint.config.mjs`, `.prettierrc.json`, `.prettierignore`, `.gitattributes`, `.nvmrc`, `.env.example`, `docker-compose.yml`, `vitest.config.ts`, `vitest.int.config.ts`, `playwright.config.ts`, `tests/setup.ts`, `tests/unit/smoke.test.ts`, `src/lib/cn.ts`, `src/app/(payload)/**` (copié du gabarit officiel), `src/payload.config.ts` (minimal, remplacé en T5), `.github/workflows/ci.yml`
 - Test : `tests/unit/smoke.test.ts`
 
 **Interfaces :**
@@ -186,6 +186,12 @@ export default defineConfig([
 ```
 > Vérifier les noms d'export réels d'`eslint-config-next@16.3.7` (`node -e "console.log(Object.keys(require('eslint-config-next/package.json').exports))"`) et adapter les imports ; supprimer l'import `next` inutilisé.
 
+`postcss.config.mjs` (Tailwind v4 sous Next — sans lui, aucune classe n'est générée) :
+```js
+export default { plugins: { '@tailwindcss/postcss': {} } }
+```
+`tests/stubs/server-only.ts` : `export {}` (le vrai paquet `server-only` lève une erreur hors bundle serveur Next ; les tests unitaires/d'intégration importent des modules qui le déclarent).
+
 `.prettierrc.json` : `{ "semi": false, "singleQuote": true, "trailingComma": "all", "printWidth": 100, "plugins": ["prettier-plugin-tailwindcss"] }` · `.prettierignore` : `.next`, `node_modules`, `pnpm-lock.yaml`, `src/payload-types.ts`, `src/migrations`, `design-system`, `docs`.
 `.gitattributes` : `* text=auto eol=lf` + `*.glb binary` `*.mp4 binary` `*.webm binary` `*.webp binary` `*.png binary` `*.jpg binary` `*.pdf binary`.
 `.nvmrc` : `22`.
@@ -233,12 +239,15 @@ import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import tsconfigPaths from 'vite-tsconfig-paths'
 
+import { fileURLToPath } from 'node:url'
+
 export default defineConfig({
   plugins: [tsconfigPaths(), react()],
+  resolve: { alias: { 'server-only': fileURLToPath(new URL('./tests/stubs/server-only.ts', import.meta.url)) } },
   test: { include: ['tests/unit/**/*.test.{ts,tsx}'], environment: 'node', setupFiles: ['tests/setup.ts'], css: false },
 })
 ```
-`vitest.int.config.ts` : idem avec `include: ['tests/integration/**/*.int.test.ts']`, `pool: 'forks'`, `testTimeout: 60_000`, `hookTimeout: 60_000`, `fileParallelism: false`, `environment: 'node'`, sans `setupFiles`.
+`vitest.int.config.ts` : idem (**même alias `server-only`**) avec `include: ['tests/integration/**/*.int.test.ts']`, `pool: 'forks'`, `testTimeout: 60_000`, `hookTimeout: 60_000`, `fileParallelism: false`, `environment: 'node'`, sans `setupFiles`.
 `tests/setup.ts` : `import '@testing-library/jest-dom/vitest'`
 `playwright.config.ts` :
 ```ts
@@ -2776,7 +2785,7 @@ test('À propos : bio et statistiques', async ({ page }) => {
   await expect(page.locator('#about')).toContainText('Développeur Full Stack')
   const stats = page.getByTestId('stat-card')
   await expect(stats).toHaveCount(4)
-  await expect(stats.first()).toContainText('3+')
+  await expect(stats.first()).toContainText(/\d+\+/) // années calculées : ne jamais figer la valeur
 })
 
 test('Services : 4 cartes cliquables ≥ 44px', async ({ page }) => {
@@ -3325,7 +3334,7 @@ export function clientIp(headers: Headers): string {
   return headers.get('x-forwarded-for')?.split(',')[0]?.trim() || headers.get('x-real-ip')?.trim() || '0.0.0.0'
 }
 ```
-`deps.ts` : `buildDeps(payload)` — `countRecent` = `payload.count({ collection:'messages', where:{ and:[{ ipHash:{ equals } }, { createdAt:{ greater_than: new Date(since).toISOString() } }] }, overrideAccess:true })` ; `save` = `payload.create({ collection:'messages', data: doc, overrideAccess:true, context:{ disableRevalidate:true } })` ; `notify` défini **seulement si** `RESEND_API_KEY` : `new Resend(key).emails.send({ from: process.env.CONTACT_FROM, to: (site.contact.contactTo ?? process.env.CONTACT_TO), replyTo: doc.email, subject: `[Portfolio] ${doc.topic} — ${doc.name}`, text: … })` — **texte brut uniquement** (aucune injection HTML), destinataire lu côté serveur (jamais exposé au client).
+`deps.ts` : `buildDeps(payload)` — `countRecent` = `payload.count({ collection:'messages', where:{ and:[{ ipHash:{ equals } }, { createdAt:{ greater_than: new Date(since).toISOString() } }] }, overrideAccess:true })` ; `save` = `payload.create({ collection:'messages', data: doc, overrideAccess:true, context:{ disableRevalidate:true } })` ; `notify` défini **seulement si** `RESEND_API_KEY` : `new Resend(key).emails.send({ from: process.env.CONTACT_FROM, to: (site.contact.contactTo ?? process.env.CONTACT_TO), replyTo: doc.email, subject: `[Portfolio] ${doc.topic} — ${doc.name}`, text: … })` — **texte brut uniquement** (aucune injection HTML), destinataire : `contactTo` est lu **côté serveur** par `payload.findGlobal({ slug: 'site', overrideAccess: true })` (le `SiteVM` public ne l'expose volontairement pas), repli `process.env.CONTACT_TO`, jamais exposé au client.
 `action.ts` : `'use server'` ; `submitContact(_prev, formData)` : `const h = await headers()`, `getPayload({ config })`, `processContact(Object.fromEntries(formData), clientIp(h), buildDeps(payload))` ; renvoie le `ContactResult`.
 Run : `pnpm test` → **PASS**.
 
