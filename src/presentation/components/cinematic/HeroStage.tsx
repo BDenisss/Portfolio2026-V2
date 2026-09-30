@@ -21,6 +21,7 @@ type HeroStageProps = { cinematic: CinematicMedia; avatarAlt: string }
 export function HeroStage({ cinematic, avatarAlt }: HeroStageProps) {
   const frame = useRef<HTMLDivElement>(null)
   const stage = useHeroStage(cinematic, frame)
+  const labelled = avatarAlt !== ''
   return (
     <div
       ref={frame}
@@ -28,8 +29,9 @@ export function HeroStage({ cinematic, avatarAlt }: HeroStageProps) {
       data-hero-frame
       data-hero-mode={stage.mode}
       data-hero-ready={stage.ready}
-      role="img"
-      aria-label={avatarAlt}
+      role={labelled ? 'img' : undefined}
+      aria-label={labelled ? avatarAlt : undefined}
+      aria-hidden={labelled ? undefined : true}
       className="relative aspect-[4/5] overflow-hidden rounded-[var(--radius-frame)]"
     >
       <div aria-hidden="true" className={cn(FADE, stage.showCanvas && 'opacity-0')}>
