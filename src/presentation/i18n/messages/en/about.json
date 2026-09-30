@@ -1,1 +1,10 @@
-{}
+{
+  "eyebrow": "About",
+  "stats": {
+    "years": "years of experience",
+    "experiences": "experiences",
+    "technologies": "technologies",
+    "projects": "projects"
+  },
+  "cta": "See my journey"
+}

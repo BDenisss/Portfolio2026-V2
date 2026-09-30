@@ -7,11 +7,18 @@ type SectionHeadingProps = {
   /** Convention : `<sectionId>-title`, référencé par `aria-labelledby` de la section. */
   id: string
   align?: 'start' | 'center'
+  className?: string
 }
 
-export function SectionHeading({ eyebrow, title, id, align = 'start' }: SectionHeadingProps) {
+export function SectionHeading({
+  eyebrow,
+  title,
+  id,
+  align = 'start',
+  className,
+}: SectionHeadingProps) {
   return (
-    <header className={cn('mb-8 md:mb-12', align === 'center' && 'text-center')}>
+    <header className={cn('mb-8 md:mb-12', align === 'center' && 'text-center', className)}>
       <Eyebrow>{eyebrow}</Eyebrow>
       <h2 id={id} className="mt-2 text-[clamp(1.75rem,1rem+3vw,3rem)] leading-tight font-semibold">
         {title}
