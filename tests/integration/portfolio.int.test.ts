@@ -1,6 +1,9 @@
 import config from '@payload-config'
 import { getPayload, type Payload } from 'payload'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { SystemClock } from '@/infrastructure/system/system-clock'
+import { seedPortfolio } from '@/infrastructure/seed/seed-portfolio'
+import { GetHomePage } from '@/application/portfolio/get-home-page'
 import { PayloadPortfolioRepository } from '@/infrastructure/cms/payload/payload-portfolio-repository'
 
 const ctx = { disableRevalidate: true }
@@ -10,6 +13,7 @@ let repo: PayloadPortfolioRepository
 
 beforeAll(async () => {
   payload = await getPayload({ config })
+  await seedPortfolio(payload)
   repo = new PayloadPortfolioRepository(() => Promise.resolve(payload))
 })
 afterAll(async () => {
@@ -46,5 +50,23 @@ describe.skipIf(!process.env.DATABASE_URI)('PayloadPortfolioRepository', () => {
   it("n'expose jamais contactTo dans le profil du site", async () => {
     const site = await repo.getSite('fr')
     expect(site.contact).not.toHaveProperty('contactTo')
+  })
+
+  it('assemble la page d’accueil à partir du contenu seedé', async () => {
+    const home = await new GetHomePage(repo, new SystemClock()).execute('fr')
+
+    expect(home.services.length).toBeGreaterThanOrEqual(4)
+    expect(home.stacks.length).toBeGreaterThanOrEqual(20)
+    expect(home.stats.years).toBeGreaterThanOrEqual(3)
+    expect(home.projects.map((project) => project.slug)).toContain('ce-portfolio')
+  })
+
+  it('rend le profil du site dans la langue demandée', async () => {
+    const french = await repo.getSite('fr')
+    const english = await repo.getSite('en')
+
+    expect(french.jobTitle).toBe('Développeur Full Stack')
+    expect(english.jobTitle).toBe('Full Stack Developer')
+    expect(french.hero.rotatingTitles).toHaveLength(2)
   })
 })
