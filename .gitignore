@@ -50,3 +50,6 @@ Thumbs.db
 
 # SDD workspace (ledger, briefs, reports)
 /.superpowers/
+
+# local preview config for the Claude desktop app
+/.claude/launch.json

@@ -1,0 +1,7 @@
+.next
+node_modules
+pnpm-lock.yaml
+src/infrastructure/cms/payload/payload-types.ts
+src/infrastructure/cms/payload/migrations
+design-system
+docs
