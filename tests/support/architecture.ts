@@ -1,10 +1,18 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { dirname, join, relative, resolve, sep } from 'node:path'
 
-export type Layer = 'domain' | 'application' | 'infrastructure' | 'composition' | 'presentation' | 'app'
+export type Layer =
+  'domain' | 'application' | 'infrastructure' | 'composition' | 'presentation' | 'app'
 
 export const SRC = resolve('src')
-const LAYERS: readonly Layer[] = ['domain', 'application', 'infrastructure', 'composition', 'presentation', 'app']
+const LAYERS: readonly Layer[] = [
+  'domain',
+  'application',
+  'infrastructure',
+  'composition',
+  'presentation',
+  'app',
+]
 
 /** Règle de dépendance : pour chaque couche, les couches qu'elle a le droit d'importer. */
 export const ALLOWED_LAYERS: Readonly<Record<Layer, readonly Layer[]>> = {
@@ -42,7 +50,9 @@ export function layerOf(absolutePath: string): Layer | null {
   return LAYERS.find((layer) => layer === top) ?? null
 }
 
-type Target = { readonly kind: 'layer'; readonly layer: Layer | null } | { readonly kind: 'external'; readonly name: string }
+type Target =
+  | { readonly kind: 'layer'; readonly layer: Layer | null }
+  | { readonly kind: 'external'; readonly name: string }
 
 function packageName(specifier: string): string {
   if (specifier.startsWith('node:')) return specifier
@@ -52,14 +62,18 @@ function packageName(specifier: string): string {
 
 export function resolveSpecifier(fromFile: string, specifier: string): Target {
   if (specifier.startsWith('@payload-config')) return { kind: 'layer', layer: 'infrastructure' }
-  if (specifier.startsWith('@/')) return { kind: 'layer', layer: layerOf(join(SRC, specifier.slice(2))) }
-  if (specifier.startsWith('.')) return { kind: 'layer', layer: layerOf(resolve(dirname(fromFile), specifier)) }
+  if (specifier.startsWith('@/'))
+    return { kind: 'layer', layer: layerOf(join(SRC, specifier.slice(2))) }
+  if (specifier.startsWith('.'))
+    return { kind: 'layer', layer: layerOf(resolve(dirname(fromFile), specifier)) }
   return { kind: 'external', name: packageName(specifier) }
 }
 
 function forbiddenReason(from: Layer, target: Target, specifier: string): string | null {
   if (target.kind === 'external') {
-    return PURE_LAYERS.includes(from) ? `la couche « ${from} » ne doit importer aucun paquet (importe « ${specifier} »)` : null
+    return PURE_LAYERS.includes(from)
+      ? `la couche « ${from} » ne doit importer aucun paquet (importe « ${specifier} »)`
+      : null
   }
   if (target.layer === null || ALLOWED_LAYERS[from].includes(target.layer)) return null
   return `la couche « ${from} » ne doit pas dépendre de « ${target.layer} » (importe « ${specifier} »)`
