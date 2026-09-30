@@ -1,4 +1,4 @@
-import type { ComponentPropsWithoutRef, ElementType } from 'react'
+import type { ComponentPropsWithoutRef, ComponentType, ElementType } from 'react'
 import { cn } from '@/presentation/lib/cn'
 
 type RevealProps<T extends ElementType> = {
@@ -16,7 +16,7 @@ export function Reveal<T extends ElementType = 'div'>({
   style,
   ...rest
 }: RevealProps<T>) {
-  const Tag = (as ?? 'div') as ElementType
+  const Tag = (as ?? 'div') as unknown as ComponentType<Record<string, unknown>>
   const delayStyle = delay ? { transitionDelay: `${delay}ms` } : undefined
   return <Tag className={cn('reveal', className)} style={{ ...delayStyle, ...style }} {...rest} />
 }
