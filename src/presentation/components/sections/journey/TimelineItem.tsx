@@ -1,6 +1,7 @@
 import type { Experience, Locale } from '@/domain'
 import { Glass } from '@/presentation/components/glass/Glass'
 import { Chip } from '@/presentation/components/ui/Chip'
+import { Reveal } from '@/presentation/components/ui/Reveal'
 import { cn } from '@/presentation/lib/cn'
 import { formatRange } from '@/presentation/lib/format-date'
 
@@ -56,12 +57,14 @@ function Highlights({ items, detailsLabel }: { items: readonly string[]; details
 export function TimelineItem({ experience, locale, labels, isLatest }: TimelineItemProps) {
   const { kind, role, organization, location, start, end, summary, highlights, stacks } = experience
   const range = formatRange(start, end, locale, labels.present)
+  // L'élément de liste porte lui-même la révélation : un wrapper entre <ol> et <li> casse la sémantique de liste.
   return (
-    <li
+    <Reveal
+      as="li"
       className={cn(
         'relative pb-8 pl-10 last:pb-0 lg:pl-[12.5rem]',
-        // Rail : un segment par item, qui se raccorde au suivant grâce au padding bas.
-        'before:absolute before:top-7 before:-bottom-2 before:left-[0.6875rem] before:w-px before:bg-[var(--glass-hairline)] last:before:bottom-auto last:before:h-4 lg:before:left-[calc(10rem+1.25rem)]',
+        // Rail : un segment par item, prolongé jusqu'au point de l'item suivant (-bottom-7 = son top-7), sans coupure.
+        'before:absolute before:top-7 before:-bottom-7 before:left-[0.6875rem] before:w-px before:bg-[var(--glass-hairline)] last:before:bottom-auto last:before:h-4 lg:before:left-[calc(10rem+1.25rem)]',
       )}
     >
       <span
@@ -99,6 +102,6 @@ export function TimelineItem({ experience, locale, labels, isLatest }: TimelineI
           </ul>
         )}
       </Glass>
-    </li>
+    </Reveal>
   )
 }
