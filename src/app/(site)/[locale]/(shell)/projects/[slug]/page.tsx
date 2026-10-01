@@ -3,7 +3,7 @@ import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import { getTranslations, setRequestLocale } from 'next-intl/server'
 import { getPortfolioUseCases } from '@/composition'
-import { groupStacksByCategory, isLocale } from '@/domain'
+import { groupStacksByCategory, isLocale, type Locale } from '@/domain'
 import { Glass } from '@/presentation/components/glass/Glass'
 import { ProjectBody } from '@/presentation/components/project/ProjectBody'
 import { ProjectGallery } from '@/presentation/components/project/ProjectGallery'
@@ -20,8 +20,23 @@ type ProjectRouteProps = { params: Promise<{ locale: string; slug: string }> }
 export const revalidate = 3600
 
 export async function generateStaticParams(): Promise<Array<{ locale: string; slug: string }>> {
+  // Build sans base de données (image Docker) : aucune page projet pré-rendue, elles se génèrent à la demande.
+  if (process.env.SKIP_BUILD_STATIC === '1') return []
   const refs = await getPortfolioUseCases().listProjectRefs.execute()
   return routing.locales.flatMap((locale) => refs.map(({ slug }) => ({ locale, slug })))
+}
+
+/**
+ * Next fusionne les métadonnées en surface : sans `alternates` propres, la page projet hériterait
+ * du canonical et des hreflang de la home (définis dans le layout de langue) et serait vue comme
+ * un doublon de celle-ci.
+ */
+function projectAlternates(locale: Locale, slug: string): NonNullable<Metadata['alternates']> {
+  const pathFor = (language: Locale): string => `/${language}/projects/${slug}`
+  return {
+    canonical: pathFor(locale),
+    languages: Object.fromEntries(routing.locales.map((language) => [language, pathFor(language)])),
+  }
 }
 
 export async function generateMetadata({ params }: ProjectRouteProps): Promise<Metadata> {
@@ -33,6 +48,7 @@ export async function generateMetadata({ params }: ProjectRouteProps): Promise<M
   return {
     title: project.title,
     description: project.tagline || project.summary,
+    alternates: projectAlternates(locale, slug),
     openGraph: { images: project.cover ? [project.cover.url] : undefined },
   }
 }

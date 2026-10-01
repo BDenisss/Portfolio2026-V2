@@ -1,0 +1,17 @@
+node_modules
+.next
+.git
+img
+media
+media-out
+.env*
+tests
+docs
+design-system
+playwright-report
+test-results
+.npmrc
+.claude
+.superpowers
+*.tsbuildinfo
+next-env.d.ts

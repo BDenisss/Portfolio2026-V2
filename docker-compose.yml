@@ -13,5 +13,27 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+  migrate:
+    profiles: [app]
+    build: { context: ., target: build }
+    command: pnpm migrate
+    environment: &appenv
+      DATABASE_URI: postgres://portfolio:portfolio@postgres:5432/portfolio
+      PAYLOAD_SECRET: ${PAYLOAD_SECRET:?définis PAYLOAD_SECRET}
+      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
+      IP_HASH_SALT: ${IP_HASH_SALT:-change-me}
+    depends_on: { postgres: { condition: service_healthy } }
+  app:
+    profiles: [app]
+    # NEXT_PUBLIC_* est figée dans le bundle au build : on la passe aussi comme argument de build.
+    build:
+      context: .
+      target: runner
+      args: { NEXT_PUBLIC_SITE_URL: '${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}' }
+    ports: ['3000:3000']
+    environment: *appenv
+    volumes: [media:/app/media]
+    depends_on: { postgres: { condition: service_healthy } }
 volumes:
   pgdata:
+  media:
