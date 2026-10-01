@@ -47,10 +47,10 @@ const ignoringPowerLimits = (capabilities: Capabilities): Capabilities => ({
 })
 
 function useHeroDecision(cinematic: CinematicMedia) {
-  const detected = useCapabilities()
   const fixtureModel = useFixtureModelUrl()
-  const capabilities = detected && fixtureModel ? ignoringPowerLimits(detected) : detected
   const media = describeHeroMedia(cinematic, fixtureModel)
+  const detected = useCapabilities(media.hasModel)
+  const capabilities = detected && fixtureModel ? ignoringPowerLimits(detected) : detected
   return {
     decision: capabilities ? decideHeroMode(capabilities, media) : initialDecision(media),
     mobile: capabilities?.mobile ?? false,

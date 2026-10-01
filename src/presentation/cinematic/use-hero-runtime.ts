@@ -7,16 +7,26 @@ const IDLE_FALLBACK_MS = 1
 
 const noopSubscribe = (): (() => void) => () => undefined
 
-// Lu une seule fois : la sonde WebGL crée un contexte, elle ne doit pas se rejouer à chaque rendu.
-let cachedCapabilities: Capabilities | null = null
-function readCapabilities(): Capabilities {
-  cachedCapabilities ??= detectCapabilities()
-  return cachedCapabilities
+// Lu une seule fois par variante : la sonde WebGL crée un contexte, elle ne doit pas se rejouer à chaque rendu,
+// et une détection faite sans sonde ne doit pas répondre à la place d'une détection qui en a besoin.
+const cachedCapabilities = new Map<boolean, Capabilities>()
+function readCapabilities(probeWebgl: boolean): Capabilities {
+  const cached = cachedCapabilities.get(probeWebgl)
+  if (cached) return cached
+  const detected = detectCapabilities(window, { probeWebgl })
+  cachedCapabilities.set(probeWebgl, detected)
+  return detected
 }
+const readWithWebglProbe = (): Capabilities => readCapabilities(true)
+const readWithoutWebglProbe = (): Capabilities => readCapabilities(false)
 
-/** `null` au rendu serveur et à l'hydratation : le premier rendu est donc celui du poster (CLS nul). */
-export function useCapabilities(): Capabilities | null {
-  return useSyncExternalStore(noopSubscribe, readCapabilities, () => null)
+/**
+ * `null` au rendu serveur et à l'hydratation : le premier rendu est donc celui du poster (CLS nul).
+ * `needsWebgl` : vrai seulement si un modèle 3D peut être affiché (sinon aucune sonde WebGL).
+ */
+export function useCapabilities(needsWebgl: boolean): Capabilities | null {
+  const read = needsWebgl ? readWithWebglProbe : readWithoutWebglProbe
+  return useSyncExternalStore(noopSubscribe, read, () => null)
 }
 
 function readFixtureModelUrl(): string | null {

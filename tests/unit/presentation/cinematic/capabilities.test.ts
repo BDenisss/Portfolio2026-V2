@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { detectCapabilities } from '@/presentation/cinematic/capabilities'
 
 type FakeOptions = {
@@ -56,5 +56,14 @@ describe('detectCapabilities', () => {
   })
   it('considère WebGL indisponible quand la sonde lève une erreur', () => {
     expect(detectCapabilities(fakeWindow({ contextThrows: true })).webgl).toBe(false)
+  })
+  it('ne crée aucun canvas quand la sonde WebGL n’est pas demandée (aucun modèle 3D à afficher)', () => {
+    const win = fakeWindow({ context: {} })
+    const createElement = vi.spyOn(win.document, 'createElement')
+
+    const capabilities = detectCapabilities(win, { probeWebgl: false })
+
+    expect(capabilities.webgl).toBe(false)
+    expect(createElement).not.toHaveBeenCalled()
   })
 })

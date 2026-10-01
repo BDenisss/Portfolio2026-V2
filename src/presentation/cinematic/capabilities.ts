@@ -20,15 +20,23 @@ function supportsWebgl(win: Window): boolean {
   }
 }
 
-/** À appeler côté client uniquement (lit matchMedia, navigator et sonde WebGL). */
-export function detectCapabilities(win: Window = window): Capabilities {
+export type DetectionOptions = {
+  /** Faux quand aucun modèle 3D n'est à afficher : la sonde attend le GPU de façon synchrone pour un résultat inutile. */
+  probeWebgl: boolean
+}
+
+/** À appeler côté client uniquement (lit matchMedia, navigator et, si demandé, sonde WebGL). */
+export function detectCapabilities(
+  win: Window = window,
+  { probeWebgl }: DetectionOptions = { probeWebgl: true },
+): Capabilities {
   const hints = win.navigator as NavigatorWithHints
   return {
     reducedMotion: win.matchMedia(REDUCED_MOTION_QUERY).matches,
     saveData: Boolean(hints.connection?.saveData),
     deviceMemory: hints.deviceMemory,
     hardwareConcurrency: hints.hardwareConcurrency,
-    webgl: supportsWebgl(win),
+    webgl: probeWebgl && supportsWebgl(win),
     mobile: win.matchMedia(MOBILE_QUERY).matches,
   }
 }
