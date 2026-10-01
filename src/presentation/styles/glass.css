@@ -70,11 +70,13 @@
     -webkit-backdrop-filter: url(#lg-refract) blur(18px) saturate(170%);
     backdrop-filter: url(#lg-refract) blur(18px) saturate(170%);
   }
-  /* Repli opaque */
+  /* Repli opaque. La réfraction est reprise ici : son sélecteur, plus spécifique que `.glass`,
+     garderait sinon flou et réfraction sur la nav malgré la préférence. */
   @media (prefers-reduced-transparency: reduce) {
     .glass,
     .glass--pill,
-    .glass--dock {
+    .glass--dock,
+    html[data-refract='on'] .glass[data-refract] {
       background: var(--opaque-glass);
       -webkit-backdrop-filter: none;
       backdrop-filter: none;
