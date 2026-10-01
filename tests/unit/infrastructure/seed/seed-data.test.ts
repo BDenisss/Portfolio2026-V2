@@ -69,7 +69,7 @@ describe('seed — contenu', () => {
     for (const chip of site.hero.chips) expect(chip.value.en).toBe(chip.value.fr)
   })
   it('aucun numéro de téléphone dans les données commitées', () => {
-    // Formats FR : « +33 6 46 82 48 26 » et « 06 46 82 48 26 » (les dates ISO 2024-10-01 ne doivent pas matcher).
+    // Formats FR : international (« + » puis indicatif) et national à 10 chiffres ; les dates ISO ne doivent pas matcher.
     const PHONE = /(\+\d{1,3}[\s.-]?\d[\d\s.-]{7,}|\b0\d(?:[\s.-]?\d{2}){4}\b)/
     for (const text of all) expect(PHONE.test(text), text).toBe(false)
   })
