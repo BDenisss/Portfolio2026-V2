@@ -16,11 +16,21 @@ const CV_FILES = {
 
 export type CvMediaIds = { readonly fullstack: Id | null; readonly ai: Id | null }
 
+const DEFAULT_CV_DIRECTORY = 'img'
+
+/**
+ * Les vrais CV vivent dans `img/` (ignoré par git, ils contiennent un téléphone). La CI n'y a pas accès :
+ * elle pointe `SEED_CV_DIR` vers de faux PDF pour que le bouton CV du hero existe et reste testé.
+ */
+export function cvDirectory(env: Readonly<Record<string, string | undefined>> = process.env): string {
+  return env.SEED_CV_DIR || DEFAULT_CV_DIRECTORY
+}
+
 async function ensureMedia(
   payload: Payload,
   file: { filename: string; alt: string },
 ): Promise<Id | null> {
-  const filePath = resolve('img', file.filename)
+  const filePath = resolve(cvDirectory(), file.filename)
   if (!existsSync(filePath)) return null
   const existing = await findIdWhere(payload, 'media', { filename: { equals: file.filename } })
   if (existing !== null) return existing
@@ -35,7 +45,7 @@ async function ensureMedia(
   return created.id
 }
 
-/** Les CV vivent dans `img/` (ignoré par git) : s'ils sont absents, le site n'a simplement pas de bouton CV. */
+/** Sans CV dans le dossier (voir `cvDirectory`), le site n'a simplement pas de bouton CV. */
 export async function seedCvMedia(payload: Payload): Promise<CvMediaIds> {
   return {
     fullstack: await ensureMedia(payload, CV_FILES.fullstack),

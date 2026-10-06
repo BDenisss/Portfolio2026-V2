@@ -32,7 +32,11 @@ jobs:
       - run: pnpm test
       - run: pnpm migrate
       - run: pnpm test:int
+      # Les vrais CV (img/, ils contiennent un téléphone) ne sont pas dans le dépôt : de faux PDF valides
+      # suffisent pour que le bouton CV du hero existe et reste testé.
       - run: pnpm seed
+        env:
+          SEED_CV_DIR: tests/fixtures/cv
       - run: pnpm build
       - run: pnpm e2e:install
       - run: pnpm e2e
