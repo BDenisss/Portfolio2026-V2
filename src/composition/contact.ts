@@ -4,6 +4,7 @@ import { getPayload } from 'payload'
 import { SubmitContactMessage } from '@/application/contact/submit-contact-message'
 import type { ContactNotifier } from '@/application/ports/contact-notifier'
 import { PayloadContactMessageRepository } from '@/infrastructure/cms/payload/payload-contact-message-repository'
+import { resolveIpHashSalt } from '@/infrastructure/contact/ip-hash-salt'
 import { ResendContactNotifier } from '@/infrastructure/contact/resend-contact-notifier'
 import { Sha256IpHasher } from '@/infrastructure/contact/sha256-ip-hasher'
 import { SystemClock } from '@/infrastructure/system/system-clock'
@@ -42,7 +43,7 @@ function buildContactUseCases(): ContactUseCases {
   return {
     submitContactMessage: new SubmitContactMessage({
       messages: new PayloadContactMessageRepository(() => getPayload({ config })),
-      hasher: new Sha256IpHasher(process.env.IP_HASH_SALT ?? ''),
+      hasher: new Sha256IpHasher(resolveIpHashSalt(process.env.IP_HASH_SALT)),
       clock: new SystemClock(),
       notifier: buildNotifier(),
     }),

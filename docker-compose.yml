@@ -21,7 +21,7 @@ services:
       DATABASE_URI: postgres://portfolio:portfolio@postgres:5432/portfolio
       PAYLOAD_SECRET: ${PAYLOAD_SECRET:?définis PAYLOAD_SECRET}
       NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
-      IP_HASH_SALT: ${IP_HASH_SALT:-change-me}
+      IP_HASH_SALT: ${IP_HASH_SALT:?définis IP_HASH_SALT (chaîne aléatoire, jamais la valeur d exemple)}
     depends_on: { postgres: { condition: service_healthy } }
   app:
     profiles: [app]
