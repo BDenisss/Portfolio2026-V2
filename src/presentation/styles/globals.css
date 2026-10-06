@@ -23,6 +23,13 @@
   html {
     scroll-behavior: auto;
     color-scheme: light;
+    /* Le focus clavier ne doit jamais finir sous la nav fixe (haut) ni sous le dock mobile (bas). */
+    scroll-padding-top: 6.5rem;
+  }
+  @media (max-width: 767px) {
+    html {
+      scroll-padding-bottom: 6.5rem;
+    }
   }
   body {
     background: var(--bg);
