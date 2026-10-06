@@ -127,3 +127,40 @@ pnpm build && pnpm start -p 3100             # puis la commande Lighthouse ci-de
 ```
 
 `NEXT_PUBLIC_E2E=1` est lu au build (code client) **et** par Playwright, car le test 3D s'ignore sans le drapeau. Refaire un build sans le drapeau avant toute mesure ou tout déploiement.
+
+## Revue adversariale T19 (analyses cloud du 01/10/2026, correctifs du 06/10/2026)
+
+Deux analyses indépendantes ont audité la branche (`docs/superpowers/review/2026-10-01-t19-findings.md` : 12 findings ; `docs/superpowers/review/2026-10-01-review-cloud-2.md` : machine propre, README, Firefox/WebKit, Lighthouse, production, responsive). Chaque constat ci-dessous a un test qui échouait avant le correctif.
+
+### Corrigés
+
+| Constat | Gravité | Correctif | Preuve |
+|---|---|---|---|
+| `/api/globals/site` et GraphQL renvoyaient `phone` et `contactTo` à n'importe qui, même avec `showPhone` décoché | haute | accès en lecture au niveau des champs (`access.ts`, `Site.ts`) : `contactTo` réservé aux administrateurs, `phone` public seulement si `showPhone` | `tests/integration/site-privacy.int.test.ts` (rouge, puis 3/3) |
+| CI rouge sur clone propre : le bouton CV exige les PDF de `img/` (ignoré par git) | haute | `SEED_CV_DIR` + deux PDF valides de fixture (`tests/fixtures/cv`) ; un PDF factice de 20 octets avait été refusé par Payload (« Invalid PDF file ») | rejoué sur une base neuve : seed OK, `hero.spec.ts` vert sur les 4 projets |
+| Focus clavier masqué par le dock (375 px, 13 arrêts) et par la nav | haute (WCAG 2.2 · 2.4.11) | `scroll-padding-top/bottom` sur `html` (`globals.css`) | `tests/e2e/focus-not-obscured.spec.ts` (rouge sur 13 éléments, puis vert à 375 et 1024 px) |
+| Limite d'envois du formulaire contournable par un `X-Forwarded-For` falsifié | moyenne | `clientIp` lit la **dernière** entrée (celle du proxy) ; hypothèse documentée dans `docs/deploy.md` | `tests/unit/app/client-ip.test.ts` |
+| `undici` vulnérable (2 hautes) en production | moyenne | `pnpm.overrides: undici >= 7.29.1` | `pnpm audit --prod` : 12 → 4 (reste : outils de build/dev, voir ci-dessous) |
+| Eyebrow 13 px à 4,17–4,4:1 sur le dégradé de page | moyenne | `--accent-text` `#6D3FE0` → `#5B2FCC` (5,26:1 sur le pire fond, 6,64:1 sur `--bg`, 7,29:1 sur le verre) ; le test des tokens vérifie désormais le pire fond du dégradé | `tokens.contrast.test.ts` |
+| « Projet personnel » en français sur `/en` | moyenne | organisation « Dywiki’s », pas de client (champs non localisés) | seed + tests du seed |
+| `X-Powered-By`, sel d'IP vide ou d'exemple (`change-me`) | basse | `poweredByHeader: false` ; `resolveIpHashSalt` refuse un sel faible en production ; `docker-compose` exige `IP_HASH_SALT` | `ip-hash-salt.test.ts` |
+| README « 6 commandes » : `seed` avec `PAYLOAD_DB_PUSH=true` pose un marqueur `dev`, `migrate` pose ensuite une question interactive | moyenne | `.env.example` : `PAYLOAD_DB_PUSH=false`, README explicite | séquence rejouée sur base neuve |
+| `pnpm media:optimize:glb -- <fichier>` échouait toujours (indice `-1 + 1`), et `spawnSync('pnpm')` ne marche pas sous Windows | moyenne | `parseGlbArguments` (testé) et lancement de `gltf-transform` par Node | commande documentée : 15,72 Ko → 5,58 Ko |
+| 3 pastilles acceptées par le CMS, 2 affichées | basse | `MAX_HERO_CHIPS = 2`, guide corrigé | — |
+| LCP du hero (3,6 à 4,9 s) dû au paragraphe d'accroche masqué en `opacity: 0` jusqu'au JS | moyenne | paragraphe visible d'emblée (la revue avait mesuré 4,85 s → 2,29 s sans ce masquage) | à remesurer avec Lighthouse |
+
+### Non corrigés (décision ou travail plus lourd)
+
+- **Téléphone dans l'historique git public** (commits `acdfbb8` et `295d4a6`, donc sur `origin/main`) : retiré de l'arbre par `e54739a`. Réécrire l'historique (`git filter-repo` + force push) ou recréer le dépôt est une décision du propriétaire.
+- Noms de stacks « Architecture hexagonale » et « Agents LLM » en français sur `/en` : `name` n'est pas localisé ; il faut un changement de schéma (migration).
+- Dates mensuelles du parcours (« sept. 2024 — sept. 2026 ») : le CV ne donne que des années ; à valider ou à afficher en années seules.
+- Pas de favicon (`/favicon.ico` en 404) : demande un visuel validé.
+- Tutoiement/vouvoiement mélangés dans la section Contact ; monogrammes « AI » / « AD » en double sur les cartes de projet ; libellés « CV (PDF) » EN pour des CV en français ; adresse « Nanterre / FR » figée dans le JSON-LD ; cibles de liens à 25 px (conformes WCAG 2.2 AA, sous les 44 px de la spec).
+- En-têtes `Content-Security-Policy` et `Strict-Transport-Security` absents.
+- `pnpm audit --prod` : 4 restantes, hors site public (`braces` via `sass>chokidar` sans correctif publié, `esbuild` via `drizzle-kit`, `dompurify` via l'admin).
+- Défilement desktop à ~30 fps avec le verre en rendu logiciel (sans GPU) : sans effet sur mobile, supprimé par `prefers-reduced-transparency`.
+- Firefox et WebKit : seul le repli du verre a été vérifié (navigateurs substitués), pas Safari.
+
+### Porte complète après correctifs (06/10/2026)
+
+`pnpm typecheck` ✓ · `pnpm lint` (dépôt entier) ✓ · `pnpm test` **263 tests** ✓ · `pnpm test:int` **19 tests** ✓ · `pnpm build` ✓ · `pnpm e2e --workers=3` **252 réussis, 12 ignorés, 0 échec** (264 tests), sur une base neuve seedée avec les PDF de fixture et les variables de la CI, `NEXT_PUBLIC_E2E=1`. Les 12 ignorés : 6 contrôles réservés au mobile et 6 occurrences du test de focus, qui ne tourne que sur le projet `laptop` (viewports explicites).
