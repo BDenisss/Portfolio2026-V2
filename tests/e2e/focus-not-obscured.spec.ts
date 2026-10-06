@@ -17,15 +17,24 @@ async function readFocusedStop(page: Page): Promise<Stop | null> {
     if (!element || element === document.body) return null
     const box = element.getBoundingClientRect()
     // Une barre fixe ne « masque » pas ses propres liens : on ne compte que celles qui ne contiennent pas l'élément.
-    const fixedBoxes = Array.from(document.querySelectorAll<HTMLElement>('nav, [data-glass="dock"]'))
+    const fixedBoxes = Array.from(
+      document.querySelectorAll<HTMLElement>('nav, [data-glass="dock"]'),
+    )
       .filter((node) => getComputedStyle(node).position === 'fixed' && !node.contains(element))
       .map((node) => node.getBoundingClientRect())
       .filter((rect) => rect.width > 0 && rect.height > 0)
     const covered = fixedBoxes.some(
       (rect) =>
-        box.bottom > rect.top && box.top < rect.bottom && box.right > rect.left && box.left < rect.right,
+        box.bottom > rect.top &&
+        box.top < rect.bottom &&
+        box.right > rect.left &&
+        box.left < rect.right,
     )
-    const label = (element.getAttribute('aria-label') ?? element.textContent ?? element.tagName).trim()
+    const label = (
+      element.getAttribute('aria-label') ??
+      element.textContent ??
+      element.tagName
+    ).trim()
     return { label: `${element.tagName.toLowerCase()} « ${label.slice(0, 40)} »`, covered }
   })
 }
