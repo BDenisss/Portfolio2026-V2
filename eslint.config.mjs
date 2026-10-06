@@ -38,7 +38,7 @@ const cleanCode = {
 export default defineConfig([
   ...coreWebVitals,
   ...typescript,
-  globalIgnores(['.next/**', 'node_modules/**', 'src/infrastructure/cms/payload/payload-types.ts', 'src/infrastructure/cms/payload/migrations/**', 'src/app/(payload)/**', 'public/**', 'playwright-report/**']),
+  globalIgnores(['.next/**', 'node_modules/**', 'src/infrastructure/cms/payload/payload-types.ts', 'src/infrastructure/cms/payload/migrations/**', 'src/app/(payload)/**', 'public/**', 'playwright-report/**', '.claude/**', '.superpowers/**', 'img/**', 'media-out/**']),
   cleanCode,
   { files: ['src/presentation/**/*.tsx', 'src/app/**/*.tsx'], rules: { 'max-lines-per-function': ['error', { max: 90, skipBlankLines: true, skipComments: true }] } }, // JSX
   { files: ['src/domain/**/*.ts', 'src/application/**/*.ts', 'src/infrastructure/**/*.ts'], rules: { '@typescript-eslint/explicit-module-boundary-types': 'error' } },

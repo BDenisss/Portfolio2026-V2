@@ -52,9 +52,8 @@ export function Hero({ site, cinematic }: HeroProps) {
               {site.name}
             </h1>
             <RotatingTitle titles={hero.rotatingTitles} label={t('titlesLabel')} />
-            <Reveal as="p" className="max-w-prose text-lg text-[var(--ink-2)]">
-              {site.tagline}
-            </Reveal>
+            {/* Pas de Reveal ici : c'est l'élément du LCP, masqué tant que le JS n'a pas tourné il retardait le rendu (LCP 4,85 s contre 2,29 s). */}
+            <p className="max-w-prose text-lg text-[var(--ink-2)]">{site.tagline}</p>
             <Reveal className="flex flex-wrap items-center gap-3">
               <Button size="lg" magnetic href="#projects" icon="arrow-up-right">
                 {hero.ctaPrimary || t('ctaPrimary')}
