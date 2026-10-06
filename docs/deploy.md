@@ -98,6 +98,7 @@ docker compose --profile app up -d app
 curl -sI http://localhost:3000/fr   # HTTP/1.1 200 OK
 ```
 
+- **Limite d'envois du formulaire et proxy.** Elle compte les messages par adresse IP lue dans la **dernière** entrée de `x-forwarded-for`, celle qu'ajoute le proxy de la plateforme (Vercel, Nginx, Caddy…). Le conteneur Docker doit donc toujours tourner **derrière** un proxy : exposé directement sur Internet, un client peut écrire cet en-tête lui-même et contourner la limite.
 - `PAYLOAD_SECRET` peut aussi venir du fichier `.env`. `IP_HASH_SALT` (valeur par défaut `change-me`) et `NEXT_PUBLIC_SITE_URL` (par défaut `http://localhost:3000`) se règlent de la même façon.
 - `NEXT_PUBLIC_SITE_URL` est figée au build : reconstruis l'image après l'avoir changée (`docker compose --profile app build`).
 - Les médias téléversés dans le conteneur vivent dans le volume nommé `media` (`/app/media`). Ils ne sont pas dans l'image. En production sur Vercel, c'est Vercel Blob qui les porte.
