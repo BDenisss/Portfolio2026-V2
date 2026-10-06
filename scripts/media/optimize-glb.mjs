@@ -2,21 +2,17 @@
 // Usage : pnpm media:optimize:glb -- <in.glb> [--out media-out/avatar.glb]
 import { mkdirSync, statSync } from 'node:fs'
 import { dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { spawnSync } from 'node:child_process'
-import { checkBudget, formatSize } from './lib.mjs'
+import { checkBudget, formatSize, parseGlbArguments } from './lib.mjs'
 
 const TEXTURE_SIZE = '1024'
-const DEFAULT_OUTPUT = 'media-out/avatar.glb'
+// Lancé avec Node, sans shell : `pnpm` est un .cmd sous Windows et `spawnSync('pnpm')` n'y trouve rien.
+const GLTF_TRANSFORM_CLI = fileURLToPath(
+  new URL('../../node_modules/@gltf-transform/cli/bin/cli.js', import.meta.url),
+)
 
-function parseArguments(argv) {
-  const args = argv.filter((value) => value !== '--')
-  const outIndex = args.indexOf('--out')
-  const output = outIndex === -1 ? DEFAULT_OUTPUT : args[outIndex + 1]
-  const input = args.find((value, index) => !value.startsWith('--') && index !== outIndex + 1)
-  return { input, output }
-}
-
-const { input, output } = parseArguments(process.argv.slice(2))
+const { input, output } = parseGlbArguments(process.argv.slice(2))
 if (!input || !output) {
   console.error('Usage : pnpm media:optimize:glb -- <in.glb> [--out media-out/avatar.glb]')
   process.exit(2)
@@ -25,10 +21,9 @@ if (!input || !output) {
 mkdirSync(dirname(output), { recursive: true })
 // Meshopt uniquement : drei l'embarque, alors que Draco irait chercher son décodeur sur un CDN.
 const result = spawnSync(
-  'pnpm',
+  process.execPath,
   [
-    'exec',
-    'gltf-transform',
+    GLTF_TRANSFORM_CLI,
     'optimize',
     input,
     output,

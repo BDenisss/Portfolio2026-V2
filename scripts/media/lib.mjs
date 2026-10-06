@@ -82,3 +82,20 @@ export function formatSize(bytes) {
     ? `${(bytes / 1_000_000).toFixed(2)} Mo`
     : `${Math.round(bytes / 1000)} Ko`
 }
+
+const DEFAULT_GLB_OUTPUT = 'media-out/avatar.glb'
+
+/**
+ * Arguments de `media:optimize:glb` : `<in.glb> [--out <fichier>]` (le `--` isolé que pnpm ajoute est ignoré).
+ * L'entrée est le premier argument qui n'est ni une option ni la valeur de `--out`.
+ * @param {string[]} argv
+ * @returns {{ input: string | undefined, output: string | undefined }}
+ */
+export function parseGlbArguments(argv) {
+  const args = argv.filter((value) => value !== '--')
+  const outIndex = args.indexOf('--out')
+  const outputValueIndex = outIndex === -1 ? -1 : outIndex + 1
+  const output = outIndex === -1 ? DEFAULT_GLB_OUTPUT : args[outputValueIndex]
+  const input = args.find((value, index) => !value.startsWith('--') && index !== outputValueIndex)
+  return { input, output }
+}

@@ -1,5 +1,32 @@
 import { describe, expect, it } from 'vitest'
-import { BUDGETS, buildFfmpegArgs, checkBudget } from '../../../scripts/media/lib.mjs'
+import {
+  BUDGETS,
+  buildFfmpegArgs,
+  checkBudget,
+  parseGlbArguments,
+} from '../../../scripts/media/lib.mjs'
+
+describe('parseGlbArguments', () => {
+  it('lit le fichier d’entrée même sans --out (commande documentée)', () => {
+    expect(parseGlbArguments(['--', 'avatar.glb'])).toEqual({
+      input: 'avatar.glb',
+      output: 'media-out/avatar.glb',
+    })
+  })
+  it('lit le fichier d’entrée avant ou après --out', () => {
+    expect(parseGlbArguments(['in.glb', '--out', 'sortie/a.glb'])).toEqual({
+      input: 'in.glb',
+      output: 'sortie/a.glb',
+    })
+    expect(parseGlbArguments(['--out', 'sortie/a.glb', 'in.glb'])).toEqual({
+      input: 'in.glb',
+      output: 'sortie/a.glb',
+    })
+  })
+  it('ne prend pas la valeur de --out pour le fichier d’entrée', () => {
+    expect(parseGlbArguments(['--out', 'sortie/a.glb']).input).toBeUndefined()
+  })
+})
 
 describe('checkBudget', () => {
   it('ok sous le budget, ko au-dessus', () => {
