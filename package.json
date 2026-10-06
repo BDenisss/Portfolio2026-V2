@@ -41,7 +41,8 @@
       "unrs-resolver"
     ],
     "overrides": {
-      "@swc/core": "1.16.2"
+      "@swc/core": "1.16.2",
+      "undici": ">=7.29.1"
     }
   },
   "dependencies": {
