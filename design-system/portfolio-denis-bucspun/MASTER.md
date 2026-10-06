@@ -30,7 +30,7 @@ La première sortie brute de `--design-system` (palette marine/or, Playfair/Karl
 | `--ink-2` | `#2E2E42` | Texte courant | 11,4:1 |
 | `--ink-muted` | `#55556B` | Texte secondaire | 6,2:1 (verre : 6,9) |
 | `--accent` | `#8B5CF6` | **Décoratif / grands titres / UI ≥ 3:1 uniquement** | 3,65:1 — ⚠ *échoue 4,5:1* |
-| `--accent-text` | `#6D3FE0` | Eyebrows, liens, texte violet < 24px | 5,26:1 (verre : 5,8) |
+| `--accent-text` | `#5B2FCC` | Eyebrows, liens, texte violet < 24px | 6,64:1 (verre : 7,29 ; pire fond du dégradé de page `#D3D2F6` : 5,26:1, testé) |
 | `--accent-strong` | `#5B34D6` | Focus ring, états actifs, blanc dessus = 7,2:1 | 6,22:1 |
 | `--accent-soft` | `#C9B8FB` | Halos, orbes, bordures teintées | décoratif |
 | `--tint-amber` `--tint-violet` `--tint-blue` `--tint-teal` | `#F5C76B` `#B9A2F8` `#7B9BF5` `#6FD3CF` | Tuiles d'icônes services | décoratif |

@@ -92,7 +92,7 @@ Détails et tokens : [MASTER.md](../../../design-system/portfolio-denis-bucspun/
 
 - **Un seul composant** `<Glass variant="surface|card|pill|dock">`, trois niveaux d'amélioration progressive (base → `backdrop-filter` → réfraction SVG Chromium) et **repli opaque** sous `prefers-reduced-transparency`.
 - Texte uniquement sur verre ≥ 62 % blanc ou sous scrim ; jamais sur vidéo/3D nue.
-- `#8B5CF6` (violet de la référence) est **décoratif** ; le texte violet utilise `#6D3FE0` (5,26:1). Test `tokens.contrast.test.ts` en CI.
+- `#8B5CF6` (violet de la référence) est **décoratif** ; le texte violet utilise `#5B2FCC` (6,64:1 sur `--bg`, 5,26:1 sur le pire fond du dégradé de page). Test `tokens.contrast.test.ts` en CI.
 
 ## 7. Cinématique & contrat média
 

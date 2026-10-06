@@ -7,6 +7,8 @@ const css = readFileSync('src/presentation/styles/tokens.css', 'utf8')
 const t = parseTokens(css)
 const glass = composite('#FFFFFF', 0.62, t.bg!)
 const glassSubtle = composite('#FFFFFF', 0.4, t.bg!)
+// Pire fond du dégradé de page, échantillonné sous le texte rendu (revue T19, F3) : plus sombre que --bg.
+const gradientWorst = '#D3D2F6'
 
 const TEXT: Array<[string, string, string]> = [
   ['ink', 'bg', t.bg!],
@@ -19,6 +21,9 @@ const TEXT: Array<[string, string, string]> = [
   ['accent-text', 'bg', t.bg!],
   ['accent-text', 'glass', glass],
   ['accent-text', 'glass-subtle', glassSubtle],
+  ['accent-text', 'gradient-worst', gradientWorst],
+  ['ink-2', 'gradient-worst', gradientWorst],
+  ['ink-muted', 'gradient-worst', gradientWorst],
   ['danger', 'glass', glass],
   ['success', 'glass', glass],
 ]
