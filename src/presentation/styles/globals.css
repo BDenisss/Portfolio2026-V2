@@ -69,8 +69,59 @@
   .hero-title-in {
     animation: hero-title-in 250ms var(--ease-glass);
   }
+  /* Transformation « magique » du titre du hero, déclenchée au cling de la vidéo. */
+  @keyframes hero-title-out {
+    to {
+      opacity: 0;
+      filter: blur(6px);
+      transform: translateY(-4px) scale(1.04);
+    }
+  }
+  @keyframes hero-title-magic {
+    from {
+      opacity: 0;
+      filter: blur(8px);
+      transform: translateY(8px) scale(0.96);
+    }
+    60%,
+    to {
+      opacity: 1;
+      filter: blur(0);
+      transform: none;
+    }
+  }
+  @keyframes hero-sparkle {
+    0% {
+      opacity: 0;
+      transform: translate(0, 0) scale(0) rotate(0deg);
+    }
+    30% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      transform: translate(var(--dx), var(--dy)) scale(1) rotate(90deg);
+    }
+  }
+  .hero-title-out {
+    animation: hero-title-out 350ms var(--ease-glass) forwards;
+  }
+  .hero-title-magic {
+    animation: hero-title-magic 650ms var(--ease-glass) both;
+  }
+  .hero-sparkle {
+    position: absolute;
+    width: 0.9rem;
+    height: 0.9rem;
+    background: color-mix(in oklab, var(--accent) 70%, white);
+    clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+    animation: hero-sparkle 900ms var(--ease-glass) both;
+  }
   @media (prefers-reduced-motion: reduce) {
-    .hero-title-in {
+    .hero-title-in,
+    .hero-title-out,
+    .hero-title-magic,
+    .hero-sparkle {
       animation: none;
     }
   }

@@ -23,7 +23,6 @@ export type HeroStageState = {
   mobile: boolean
   base: MediaAsset | null
   video: VideoPair | null
-  loopVideo: boolean
   showVideo: boolean
   model: string | null
   mountCanvas: boolean
@@ -101,7 +100,6 @@ export function useHeroStage(
     mobile,
     base: cinematic.heroPoster ?? cinematic.avatarPortrait,
     video,
-    loopVideo: mode === 'video',
     showVideo: video !== null && !lifecycle.showCanvas,
     model,
     mountCanvas: lifecycle.mountCanvas,

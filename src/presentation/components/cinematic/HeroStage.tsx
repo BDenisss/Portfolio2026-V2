@@ -5,6 +5,7 @@ import Image from 'next/image'
 import type { CinematicMedia } from '@/domain'
 import { Glass } from '@/presentation/components/glass/Glass'
 import { useHeroStage } from '@/presentation/cinematic/use-hero-stage'
+import { useVideoChoreography } from '@/presentation/cinematic/use-video-choreography'
 import { cn } from '@/presentation/lib/cn'
 import { GlassOrb } from './GlassOrb'
 import { HeroVideo } from './HeroVideo'
@@ -21,6 +22,8 @@ type HeroStageProps = { cinematic: CinematicMedia; avatarAlt: string }
 export function HeroStage({ cinematic, avatarAlt }: HeroStageProps) {
   const frame = useRef<HTMLDivElement>(null)
   const stage = useHeroStage(cinematic, frame)
+  // Quand la scène vidéo joue, elle pilote le titre du hero (qui se transforme à son « cling »).
+  const onCue = useVideoChoreography(stage.mode)
   const labelled = avatarAlt !== ''
   return (
     <div
@@ -54,10 +57,10 @@ export function HeroStage({ cinematic, avatarAlt }: HeroStageProps) {
         <HeroVideo
           sources={stage.video}
           poster={stage.base}
-          loop={stage.loopVideo}
           active={stage.active}
           visible={stage.showVideo}
           onEnded={stage.onIntroEnded}
+          onCue={onCue}
         />
       )}
       {stage.mountCanvas && stage.model && (
