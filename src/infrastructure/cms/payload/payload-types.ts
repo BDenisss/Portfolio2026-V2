@@ -722,6 +722,9 @@ export interface Site {
   };
   contact?: {
     email?: string | null;
+    /**
+     * Lisible par le public (API comprise) seulement si « showPhone » est coché.
+     */
     phone?: string | null;
     /**
      * Affiche le téléphone publiquement. Désactivé par défaut (spam).

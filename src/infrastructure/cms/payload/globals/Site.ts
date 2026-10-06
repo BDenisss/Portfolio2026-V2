@@ -7,7 +7,8 @@ import {
 } from '@/infrastructure/cms/payload/access'
 import { createRevalidateGlobalHook } from '@/infrastructure/cms/payload/hooks/revalidate'
 
-const MAX_HERO_CHIPS = 3
+// Le hero affiche deux pastilles (voir CHIP_POSITIONS dans Hero.tsx) : le CMS n'en accepte pas plus.
+const MAX_HERO_CHIPS = 2
 
 export const Site: GlobalConfig = {
   slug: 'site',
@@ -113,7 +114,8 @@ export const Site: GlobalConfig = {
               type: 'text',
               access: { read: publicWhenChecked('showPhone') },
               admin: {
-                description: 'Lisible par le public (API comprise) seulement si « showPhone » est coché.',
+                description:
+                  'Lisible par le public (API comprise) seulement si « showPhone » est coché.',
               },
             },
             {

@@ -66,7 +66,7 @@ La case `featured` existe mais n'a pas d'effet visible sur le site pour l'instan
 | Onglet | Contenu |
 |---|---|
 | Identité | nom, titre de poste, accroche, localisation |
-| Hero | sur-titre, phrases qui défilent, boutons, trois pastilles maximum, bandeau « Ils m'ont fait confiance » |
+| Hero | sur-titre, phrases qui défilent, boutons, deux pastilles maximum, bandeau « Ils m'ont fait confiance » |
 | À propos | titre, biographie, chiffres |
 | Méthode | titre et étapes de la section Méthode |
 | Contact | e-mail, téléphone, LinkedIn, GitHub, destinataire des messages |
