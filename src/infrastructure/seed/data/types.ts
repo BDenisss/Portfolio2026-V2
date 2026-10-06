@@ -36,7 +36,8 @@ export type SeedExperience = {
 export type SeedProject = {
   readonly slug: string
   readonly year: number
-  readonly client: string
+  /** Absent pour un projet personnel : la fiche masque le champ. */
+  readonly client?: string
   readonly featured: boolean
   readonly stacks: readonly string[]
   readonly repo?: string

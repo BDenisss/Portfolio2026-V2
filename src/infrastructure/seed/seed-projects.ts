@@ -13,7 +13,7 @@ export async function seedProjects(
       slug: project.slug,
       _status: 'published',
       year: project.year,
-      client: project.client,
+      client: project.client ?? null,
       featured: project.featured,
       order: index + 1,
       stacks: resolveStackIds(project.stacks, stackIds),

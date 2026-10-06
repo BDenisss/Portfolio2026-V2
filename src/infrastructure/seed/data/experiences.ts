@@ -116,7 +116,8 @@ export const experiences: readonly SeedExperience[] = [
   {
     key: 'dywikis',
     kind: 'work',
-    organization: 'Projet personnel',
+    // Nom propre, identique en FR et en EN (le champ n'est pas localisé) ; le rôle dit déjà « en autonomie ».
+    organization: 'Dywiki’s',
     start: '2022-10-01',
     end: '2023-01-01',
     stacks: ['php', 'mysql', 'javascript', 'sql'],

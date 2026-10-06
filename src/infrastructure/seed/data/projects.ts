@@ -48,7 +48,7 @@ export const projects: readonly SeedProject[] = [
   {
     slug: 'dywikis',
     year: 2022,
-    client: 'Projet personnel',
+    // Projet personnel : pas de client (champ non localisé ; la fiche masque un client absent).
     featured: true,
     stacks: ['php', 'mysql', 'javascript'],
     title: { fr: 'Dywiki’s', en: 'Dywiki’s' },
