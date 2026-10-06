@@ -1,5 +1,10 @@
 import type { GlobalConfig } from 'payload'
-import { anyone, isAdmin } from '@/infrastructure/cms/payload/access'
+import {
+  adminOnlyField,
+  anyone,
+  isAdmin,
+  publicWhenChecked,
+} from '@/infrastructure/cms/payload/access'
 import { createRevalidateGlobalHook } from '@/infrastructure/cms/payload/hooks/revalidate'
 
 const MAX_HERO_CHIPS = 3
@@ -103,7 +108,14 @@ export const Site: GlobalConfig = {
           label: 'Contact',
           fields: [
             { name: 'email', type: 'email' },
-            { name: 'phone', type: 'text' },
+            {
+              name: 'phone',
+              type: 'text',
+              access: { read: publicWhenChecked('showPhone') },
+              admin: {
+                description: 'Lisible par le public (API comprise) seulement si « showPhone » est coché.',
+              },
+            },
             {
               name: 'showPhone',
               type: 'checkbox',
@@ -117,6 +129,7 @@ export const Site: GlobalConfig = {
             {
               name: 'contactTo',
               type: 'email',
+              access: { read: adminOnlyField },
               admin: {
                 description:
                   'Destinataire des notifications du formulaire (jamais affiché publiquement).',
