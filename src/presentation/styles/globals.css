@@ -166,7 +166,7 @@
   }
   /* Entrée par la droite, en fondu (cartes du parcours). */
   .js .reveal[data-reveal='right'] {
-    transform: translateX(4rem);
+    transform: translateX(min(45vw, 28rem));
   }
   @media (prefers-reduced-motion: reduce) {
     .js .reveal,

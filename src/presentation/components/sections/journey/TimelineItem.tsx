@@ -57,11 +57,9 @@ function Highlights({ items, detailsLabel }: { items: readonly string[]; details
 export function TimelineItem({ experience, locale, labels, isLatest }: TimelineItemProps) {
   const { kind, role, organization, location, start, end, summary, highlights, stacks } = experience
   const range = formatRange(start, end, locale, labels.present)
-  // L'élément de liste porte lui-même la révélation : un wrapper entre <ol> et <li> casse la sémantique de liste.
+  // Seule la carte (et sa date) glisse depuis la droite : le rail et la pastille restent fixes pour garder la ligne continue.
   return (
-    <Reveal
-      as="li"
-      from="right"
+    <li
       className={cn(
         'relative pb-8 pl-10 last:pb-0 lg:pl-[12.5rem]',
         // Rail : un segment par item, prolongé jusqu'au point de l'item suivant (-bottom-7 = son top-7), sans coupure.
@@ -76,33 +74,35 @@ export function TimelineItem({ experience, locale, labels, isLatest }: TimelineI
           'lg:left-[calc(10rem+0.8125rem)]',
         )}
       />
-      <Glass as="article" variant="card" data-testid="timeline-item" className="space-y-4 p-6">
-        {/* La période fait partie de l'entrée ; sur grand écran elle se place à gauche du rail. */}
-        <p className="text-sm font-medium text-[var(--ink-muted)] lg:absolute lg:top-6 lg:right-full lg:mr-10 lg:w-40 lg:text-right">
-          {range}
-        </p>
-        <div className="space-y-2">
-          <Chip tone={kind === 'work' ? 'glass' : 'accent'}>
-            {kind === 'work' ? labels.work : labels.education}
-          </Chip>
-          <h3 className="font-display text-xl">{role}</h3>
-          <p className="text-[var(--ink-muted)]">
-            {organization}
-            {location && ` · ${location}`}
+      <Reveal from="right">
+        <Glass as="article" variant="card" data-testid="timeline-item" className="space-y-4 p-6">
+          {/* La période fait partie de l'entrée ; sur grand écran elle se place à gauche du rail. */}
+          <p className="text-sm font-medium text-[var(--ink-muted)] lg:absolute lg:top-6 lg:right-full lg:mr-10 lg:w-40 lg:text-right">
+            {range}
           </p>
-        </div>
-        {summary && <p className="text-[var(--ink-2)]">{summary}</p>}
-        {highlights.length > 0 && <Highlights items={highlights} detailsLabel={labels.details} />}
-        {stacks.length > 0 && (
-          <ul aria-label={labels.stacks} className="flex flex-wrap gap-2">
-            {stacks.slice(0, MAX_STACK_CHIPS).map((stack) => (
-              <li key={stack.id}>
-                <Chip>{stack.name}</Chip>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Glass>
-    </Reveal>
+          <div className="space-y-2">
+            <Chip tone={kind === 'work' ? 'glass' : 'accent'}>
+              {kind === 'work' ? labels.work : labels.education}
+            </Chip>
+            <h3 className="font-display text-xl">{role}</h3>
+            <p className="text-[var(--ink-muted)]">
+              {organization}
+              {location && ` · ${location}`}
+            </p>
+          </div>
+          {summary && <p className="text-[var(--ink-2)]">{summary}</p>}
+          {highlights.length > 0 && <Highlights items={highlights} detailsLabel={labels.details} />}
+          {stacks.length > 0 && (
+            <ul aria-label={labels.stacks} className="flex flex-wrap gap-2">
+              {stacks.slice(0, MAX_STACK_CHIPS).map((stack) => (
+                <li key={stack.id}>
+                  <Chip>{stack.name}</Chip>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Glass>
+      </Reveal>
+    </li>
   )
 }
