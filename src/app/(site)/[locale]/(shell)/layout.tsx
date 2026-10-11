@@ -3,6 +3,7 @@ import { connection } from 'next/server'
 import { setRequestLocale } from 'next-intl/server'
 import { getPortfolioUseCases } from '@/composition'
 import { isLocale } from '@/domain'
+import { PageBackdrop } from '@/presentation/components/decor/PageBackdrop'
 import { Dock } from '@/presentation/components/ui/Dock'
 import { Footer } from '@/presentation/components/ui/Footer'
 import { Nav } from '@/presentation/components/ui/Nav'
@@ -24,6 +25,7 @@ export default async function ShellLayout({
   const site = await getPortfolioUseCases().getSiteProfile.execute(locale)
   return (
     <>
+      <PageBackdrop />
       <SmoothScroll />
       <RevealController />
       <Nav name={site.name} jobTitle={site.jobTitle} />

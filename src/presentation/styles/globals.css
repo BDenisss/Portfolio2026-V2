@@ -1,6 +1,7 @@
 @import 'tailwindcss';
 @import './tokens.css';
 @import './glass.css';
+@import './decor.css';
 
 @theme inline {
   --color-bg: var(--bg);

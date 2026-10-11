@@ -28,7 +28,7 @@ La première sortie brute de `--design-system` (palette marine/or, Playfair/Karl
 | `--bg` | `#EEEDF7` | Fond de page (sous les mesh gradients) | — |
 | `--ink` | `#0B0B14` | Titres, bouton primaire | 16,9:1 sur `--bg` |
 | `--ink-2` | `#2E2E42` | Texte courant | 11,4:1 |
-| `--ink-muted` | `#55556B` | Texte secondaire | 6,2:1 (verre : 6,9) |
+| `--ink-muted` | `#4A4A60` | Texte secondaire | 7,42:1 (pire fond du dégradé `#D3D2F6` : 5,87:1) |
 | `--accent` | `#8B5CF6` | **Décoratif / grands titres / UI ≥ 3:1 uniquement** | 3,65:1 — ⚠ *échoue 4,5:1* |
 | `--accent-text` | `#5B2FCC` | Eyebrows, liens, texte violet < 24px | 6,64:1 (verre : 7,29 ; pire fond du dégradé de page `#D3D2F6` : 5,26:1, testé) |
 | `--accent-strong` | `#5B34D6` | Focus ring, états actifs, blanc dessus = 7,2:1 | 6,22:1 |
@@ -126,3 +126,9 @@ Hero → À propos → Services → Stack → Projets → Parcours → Méthode 
 - [ ] Testé à 375 / 768 / 1024 / 1440 px, aucun scroll horizontal, rien masqué derrière la nav
 - [ ] CLS < 0,1 (dimensions réservées pour médias, `next/font`)
 - [ ] Alt text sur les images de contenu, `aria-hidden` sur le décor
+
+## Matériau verre et décor (chantier du 11/10/2026)
+
+- **Verre en 3 couches** (`glass.css`), HTML inchangé : `.glass` = contenu + ombre ; `::before` = lentille (flou `--glass-blur`, saturation, réfraction SVG sur Chromium, appliquée à la lentille seule) ; `::after` = voile blanc (`--glass-fill*`) + liseré spéculaire `--glass-highlight`. `.glass--rim` = liseré seul, pour un média.
+- **Décor CSS/SVG** (`decor.css`, `<PageBackdrop/>`) : halos, rubans nacrés, sphères de verre, fixes derrière la page, lents, décalés au défilement (`animation-timeline: scroll()` si supporté), sans animation sous `prefers-reduced-motion`.
+- **Garde-fou** : le décor assombrit le fond ; mesuré avec le texte effacé, le 5e centile du fond doit rester ≥ 0,50 (seuil de `--ink-muted`). Valeurs du 11/10 : 0,537 (375 px) et 0,580 (1440 px). Si on renforce le décor, remesurer.
