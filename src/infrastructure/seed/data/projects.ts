@@ -103,32 +103,4 @@ export const projects: readonly SeedProject[] = [
       ],
     },
   },
-  {
-    slug: 'quiz-ville-de-clamart',
-    year: 2023,
-    client: 'Ville de Clamart',
-    featured: false,
-    stacks: ['symfony', 'mysql', 'javascript', 'tailwind-css', 'twig'],
-    title: { fr: 'Application de quiz', en: 'Quiz application' },
-    tagline: {
-      fr: 'Du scoring, des requêtes SQL et des explications automatiques.',
-      en: 'Scoring, SQL queries and automatic explanations.',
-    },
-    summary: {
-      fr: 'Contribution à une application web de quiz pour la Ville de Clamart (Symfony, MySQL, JavaScript, Tailwind, Twig).',
-      en: 'Contribution to a quiz web application for the City of Clamart (Symfony, MySQL, JavaScript, Tailwind, Twig).',
-    },
-    caseStudy: {
-      fr: [
-        'Contribution au développement de l’application, notamment sur les algorithmes de scoring frontend.',
-        'Optimisation des transactions et des requêtes SQL pour améliorer la fiabilité et les performances sous charge.',
-        'Affichage automatique d’explications associées aux questions du quiz.',
-      ],
-      en: [
-        'Contribution to the development of the application, notably on the frontend scoring algorithms.',
-        'Optimization of transactions and SQL queries to improve reliability and performance under load.',
-        'Automatic display of explanations attached to the quiz questions.',
-      ],
-    },
-  },
 ]

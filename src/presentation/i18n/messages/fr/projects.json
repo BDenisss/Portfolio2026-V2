@@ -1,10 +1,6 @@
 {
   "eyebrow": "Réalisations",
   "title": "Mes projets",
-  "filterLabel": "Filtrer par technologie",
-  "filterAll": "Tout",
-  "empty": "Je n’ai pas encore de projet avec cette technologie.",
-  "more": "Voir d’autres projets",
   "open": "Voir le projet",
   "back": "Tous les projets",
   "client": "Client",
@@ -15,5 +11,9 @@
   "gallery": "Galerie",
   "caseStudy": "Étude de cas",
   "previous": "Projet précédent",
-  "next": "Projet suivant"
+  "next": "Projet suivant",
+  "carouselLabel": "Mes projets",
+  "slideLabel": "Projet {current} sur {total}",
+  "pause": "Mettre en pause",
+  "play": "Relancer"
 }

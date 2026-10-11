@@ -52,7 +52,7 @@ export default async function HomeRoute({ params }: LocaleParams) {
       <About site={home.site} stats={home.stats} />
       <Services services={home.services} />
       <TechStack stacks={home.stacks} />
-      <Projects projects={home.projects} stacks={home.stacks} />
+      <Projects projects={home.projects} />
       <Journey experiences={home.experiences} />
       <Process headline={home.site.process.headline} steps={home.site.process.steps} />
       <Contact site={home.site} submitAction={submitContact} />

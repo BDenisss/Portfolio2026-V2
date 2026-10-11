@@ -1,10 +1,6 @@
 {
   "eyebrow": "Work",
   "title": "My projects",
-  "filterLabel": "Filter by technology",
-  "filterAll": "All",
-  "empty": "I don’t have a project with this technology yet.",
-  "more": "See more projects",
   "open": "View project",
   "back": "All projects",
   "client": "Client",
@@ -15,5 +11,9 @@
   "gallery": "Gallery",
   "caseStudy": "Case study",
   "previous": "Previous project",
-  "next": "Next project"
+  "next": "Next project",
+  "carouselLabel": "My projects",
+  "slideLabel": "Project {current} of {total}",
+  "pause": "Pause",
+  "play": "Play"
 }

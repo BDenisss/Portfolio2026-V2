@@ -6,27 +6,23 @@ test('Stack : tuiles groupées par catégorie', async ({ page }) => {
   await expect(page.locator('#stack h3').first()).toBeVisible()
 })
 
-test('Projets : filtre par technologie', async ({ page }) => {
+test('Projets : un carrousel de 3 projets, sans filtre', async ({ page }) => {
   await page.goto('/fr')
-  const cards = page.getByTestId('project-card')
-  const total = await cards.count()
-  expect(total).toBeGreaterThanOrEqual(3)
-  await page.getByTestId('project-filter').getByRole('button', { name: 'PHP' }).click()
-  await expect(cards).toHaveCount(1)
-  await page.getByTestId('project-filter').getByRole('button', { name: 'Tout' }).click()
-  await expect(cards).toHaveCount(total)
+  await expect(page.getByTestId('project-card')).toHaveCount(3)
+  await expect(page.getByTestId('project-filter')).toHaveCount(0)
+  await expect(page.getByRole('group', { name: 'Mes projets' })).toBeVisible()
 })
 
-test('Projets : le filtre actif est annoncé (aria-pressed)', async ({ page }) => {
+test('Projets : les flèches et les points font défiler le carrousel', async ({ page }) => {
   await page.goto('/fr')
-  const filter = page.getByTestId('project-filter')
-  await expect(filter.getByRole('button', { name: 'Tout' })).toHaveAttribute('aria-pressed', 'true')
-  await filter.getByRole('button', { name: 'PHP' }).click()
-  await expect(filter.getByRole('button', { name: 'PHP' })).toHaveAttribute('aria-pressed', 'true')
-  await expect(filter.getByRole('button', { name: 'Tout' })).toHaveAttribute(
-    'aria-pressed',
-    'false',
-  )
+  const carousel = page.getByTestId('projects-carousel')
+  await carousel.scrollIntoViewIfNeeded()
+  const dots = carousel.getByRole('button', { name: /^Projet [0-9] sur 3$/ })
+  await expect(dots.first()).toHaveAttribute('aria-current', 'true')
+  await carousel.getByRole('button', { name: 'Projet suivant' }).click()
+  await expect(dots.nth(1)).toHaveAttribute('aria-current', 'true')
+  await dots.nth(2).click()
+  await expect(dots.nth(2)).toHaveAttribute('aria-current', 'true')
 })
 
 test('Projets : la carte mène à la page détail, localisée', async ({ page }) => {
