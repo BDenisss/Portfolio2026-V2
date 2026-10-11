@@ -1,7 +1,11 @@
 {
   "skipToContent": "Aller au contenu",
   "siteName": "Denis Bucspun",
-  "metaTitle": "Denis Bucspun — Développeur Full Stack & Ingénieur IA",
-  "metaDescription": "Portfolio de Denis Bucspun : développement full stack (React, .NET), architecture logicielle et IA générative.",
-  "language": { "fr": "Français", "en": "English", "switch": "Changer de langue" }
+  "metaTitle": "Denis Bucspun, développeur Full Stack et ingénieur IA",
+  "metaDescription": "Je suis Denis, développeur full stack. Voici mes projets autour de React, de .NET et de l’IA générative.",
+  "language": {
+    "fr": "Français",
+    "en": "English",
+    "switch": "Changer de langue"
+  }
 }

@@ -6,11 +6,11 @@ import { findIdWhere, seedApi, SEED_CONTEXT, type Id } from './upsert'
 const CV_FILES = {
   fullstack: {
     filename: 'CV_Denis_Bucspun_2026_FR.pdf',
-    alt: 'CV Denis Bucspun — Développeur Full Stack',
+    alt: 'CV Denis Bucspun, Développeur Full Stack',
   },
   ai: {
     filename: 'CV_Denis_Bucspun_2026_IA.pdf',
-    alt: 'CV Denis Bucspun — Ingénieur Logiciel IA / GenAI',
+    alt: 'CV Denis Bucspun, Ingénieur Logiciel IA / GenAI',
   },
 } as const
 

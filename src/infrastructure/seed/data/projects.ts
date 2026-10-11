@@ -23,8 +23,8 @@ export const projects: readonly SeedProject[] = [
     ],
     title: { fr: 'Application interne web & mobile', en: 'Internal web & mobile application' },
     tagline: {
-      fr: 'De l’idéation au produit pré-pilote, en alternance.',
-      en: 'From ideation to a pre-pilot product, during my work-study.',
+      fr: 'De l’idée au produit pré-pilote, pendant mon alternance.',
+      en: 'From the first idea to a pre-pilot product, during my work-study.',
     },
     summary: {
       fr: 'Application web/mobile interne conçue et développée chez Bouygues Telecom Business Solutions, de l’idéation au produit pré-pilote.',
@@ -53,8 +53,8 @@ export const projects: readonly SeedProject[] = [
     stacks: ['php', 'mysql', 'javascript'],
     title: { fr: 'Dywiki’s', en: 'Dywiki’s' },
     tagline: {
-      fr: 'Base de données de films, en autonomie.',
-      en: 'A film database, built independently.',
+      fr: 'Ma base de données de films, construite seul.',
+      en: 'My film database, built on my own.',
     },
     summary: {
       fr: 'Projet personnel (octobre 2022 – janvier 2023) : une base de données de films conçue et développée en autonomie.',
@@ -83,7 +83,7 @@ export const projects: readonly SeedProject[] = [
     stacks: ['angular', 'primeng', 'java', 'figma'],
     title: { fr: 'Application de supervision', en: 'Supervision application' },
     tagline: {
-      fr: 'Application interne, en méthode agile.',
+      fr: 'Une application interne, en méthode agile.',
       en: 'An internal application, built the agile way.',
     },
     summary: {
@@ -111,7 +111,7 @@ export const projects: readonly SeedProject[] = [
     stacks: ['symfony', 'mysql', 'javascript', 'tailwind-css', 'twig'],
     title: { fr: 'Application de quiz', en: 'Quiz application' },
     tagline: {
-      fr: 'Scoring, requêtes SQL et explications automatiques.',
+      fr: 'Du scoring, des requêtes SQL et des explications automatiques.',
       en: 'Scoring, SQL queries and automatic explanations.',
     },
     summary: {

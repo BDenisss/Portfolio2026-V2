@@ -49,7 +49,7 @@ export const Stacks: CollectionConfig = {
       type: 'group',
       admin: {
         description:
-          'Tape un slug Simple Icons (ex. docker, react — voir simpleicons.org) ou uploade un SVG. Sans icône, un monogramme est affiché.',
+          'Tape un slug Simple Icons (ex. docker, react, voir simpleicons.org) ou uploade un SVG. Sans icône, un monogramme est affiché.',
       },
       fields: [
         { name: 'simpleIconSlug', type: 'text', validate: validateIconSlug },

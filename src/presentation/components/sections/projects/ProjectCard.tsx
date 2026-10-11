@@ -26,7 +26,7 @@ export function ProjectCard({ project, openLabel }: ProjectCardProps) {
         <h3 className="font-display text-xl">
           <Link
             href={`/projects/${project.slug}`}
-            aria-label={`${project.title} — ${openLabel}`}
+            aria-label={`${project.title}, ${openLabel}`}
             className="after:absolute after:inset-0 after:content-['']"
           >
             {project.title}

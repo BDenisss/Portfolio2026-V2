@@ -85,7 +85,7 @@ export function violationsInSource(file: string, source: string): string[] {
   if (from === null) return [`${where}: dossier hors des couches connues (${LAYERS.join(', ')})`]
   return importsOf(source).flatMap(({ specifier, line }) => {
     const reason = forbiddenReason(from, resolveSpecifier(file, specifier), specifier)
-    return reason ? [`${where}:${line} — ${reason}`] : []
+    return reason ? [`${where}:${line}: ${reason}`] : []
   })
 }
 

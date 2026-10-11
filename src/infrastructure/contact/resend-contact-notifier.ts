@@ -17,7 +17,7 @@ const CONTROL_CHARACTERS = /[\u0000-\u001f\u007f]+/g
 const cleanLine = (value: string): string => value.replace(CONTROL_CHARACTERS, ' ').trim()
 
 function subjectOf(message: NewContactMessage): string {
-  return `[Portfolio] ${message.topic} — ${cleanLine(message.name)}`.slice(0, MAX_SUBJECT_LENGTH)
+  return `[Portfolio] ${message.topic} · ${cleanLine(message.name)}`.slice(0, MAX_SUBJECT_LENGTH)
 }
 
 /** Texte brut uniquement : aucun contenu saisi par le visiteur n'est interprété comme du HTML. */

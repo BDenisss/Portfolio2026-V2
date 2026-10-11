@@ -1,10 +1,10 @@
 {
   "eyebrow": "Réalisations",
-  "title": "Projets sélectionnés",
+  "title": "Mes projets",
   "filterLabel": "Filtrer par technologie",
   "filterAll": "Tout",
-  "empty": "Aucun projet pour cette technologie.",
-  "more": "Voir plus de projets",
+  "empty": "Je n’ai pas encore de projet avec cette technologie.",
+  "more": "Voir d’autres projets",
   "open": "Voir le projet",
   "back": "Tous les projets",
   "client": "Client",

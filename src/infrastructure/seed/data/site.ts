@@ -9,8 +9,8 @@ export const site = {
     location: 'Nanterre, France',
     jobTitle: { fr: 'Développeur Full Stack', en: 'Full Stack Developer' },
     tagline: {
-      fr: 'Je conçois des applications web et mobiles solides, de l’idée au déploiement, avec une vraie exigence d’architecture, de tests et de qualité logicielle.',
-      en: 'I design solid web and mobile applications, from idea to deployment, with a real commitment to architecture, testing and software quality.',
+      fr: 'Je conçois des applications web et mobiles solides, de l’idée à la mise en ligne. J’aime le travail soigné : une architecture claire, des tests, un code qu’on a plaisir à reprendre.',
+      en: 'I build solid web and mobile applications, from the first idea to going live. I like careful work: a clear architecture, tests, and code that is a pleasure to pick back up.',
     },
   },
   hero: {
@@ -31,12 +31,12 @@ export const site = {
   },
   about: {
     headline: {
-      fr: 'Concevoir avec rigueur, livrer avec pragmatisme',
-      en: 'Design with rigor, deliver with pragmatism',
+      fr: 'Faire les choses bien, sans compliquer',
+      en: 'Doing things well, without overcomplicating',
     },
     bio: {
-      fr: 'Développeur Full Stack avec une expérience concrète en conception et développement d’applications web et mobiles. Habitué aux backends .NET et ASP.NET Core, aux frontends React, React Native et TypeScript et à l’intégration d’API externes. Je pratique la Clean Architecture, le Domain-Driven Design, les tests automatisés et les déploiements cloud sur Azure. Côté IA, je conçois des solutions d’IA générative (LLM, agents, systèmes multi-agents, MCP, RAG, tool calling) et j’utilise Claude Code et Codex pour accélérer le développement et itérer rapidement, tout en gardant une exigence de qualité et de maintenabilité. À l’aise pour analyser les compromis entre dette technique, qualité logicielle et vitesse de livraison.',
-      en: 'Full Stack Developer with hands-on experience designing and building web and mobile applications. Comfortable with .NET and ASP.NET Core backends, React, React Native and TypeScript frontends, and external API integration. I practice Clean Architecture, Domain-Driven Design, automated testing and cloud deployments on Azure. On the AI side, I design generative AI solutions (LLMs, agents, multi-agent systems, MCP, RAG, tool calling) and use Claude Code and Codex to speed up development and iterate quickly, while keeping a high bar for quality and maintainability. At ease analysing the trade-offs between technical debt, software quality and delivery speed.',
+      fr: 'Je suis développeur full stack et j’ai déjà conçu et construit des applications web et mobiles de bout en bout. Mon terrain de jeu : les backends .NET et ASP.NET Core, les frontends React, React Native et TypeScript, et l’intégration d’API externes. Je travaille avec la Clean Architecture, le Domain-Driven Design, les tests automatisés et le cloud Azure. Côté IA, je conçois des solutions d’IA générative (LLM, agents, systèmes multi-agents, MCP, RAG, tool calling) et je m’appuie sur Claude Code et Codex pour avancer vite, sans lâcher la qualité ni la maintenabilité. J’aime aussi peser les compromis entre dette technique, qualité et vitesse de livraison.',
+      en: 'I’m a full-stack developer and I’ve designed and built web and mobile applications from end to end. My playground: .NET and ASP.NET Core backends, React, React Native and TypeScript frontends, and external API integration. I work with Clean Architecture, Domain-Driven Design, automated testing and the Azure cloud. On the AI side, I design generative AI solutions (LLMs, agents, multi-agent systems, MCP, RAG, tool calling) and rely on Claude Code and Codex to move fast without giving up quality or maintainability. I also enjoy weighing the trade-offs between technical debt, quality and delivery speed.',
     },
     autoStats: true,
   },
@@ -46,36 +46,36 @@ export const site = {
       {
         title: { fr: 'Comprendre le besoin', en: 'Understand the need' },
         text: {
-          fr: 'Partir du besoin métier et échanger régulièrement avec les utilisateurs pour identifier leurs attentes.',
-          en: 'Start from the business need and talk regularly with users to identify what they expect.',
+          fr: 'Je pars du besoin métier et je discute souvent avec les utilisateurs pour bien comprendre ce qu’ils attendent.',
+          en: 'I start from the business need and talk often with users to really understand what they expect.',
         },
       },
       {
         title: { fr: 'Modéliser', en: 'Model' },
         text: {
-          fr: 'Modélisation métier, conception d’API et choix d’architecture (Clean Architecture, DDD, hexagonale).',
-          en: 'Business modelling, API design and architecture choices (Clean Architecture, DDD, hexagonal).',
+          fr: 'Je modélise le métier, je dessine les API et je choisis l’architecture (Clean Architecture, DDD, hexagonale).',
+          en: 'I model the business, design the APIs and pick the architecture (Clean Architecture, DDD, hexagonal).',
         },
       },
       {
         title: { fr: 'Construire', en: 'Build' },
         text: {
-          fr: 'Développement full stack itératif, accéléré par des workflows assistés par IA (Claude Code, Codex).',
-          en: 'Iterative full-stack development, accelerated by AI-assisted workflows (Claude Code, Codex).',
+          fr: 'Je développe par petites itérations, en m’aidant de l’IA (Claude Code, Codex) pour aller plus vite.',
+          en: 'I build in small iterations, using AI (Claude Code, Codex) to move faster.',
         },
       },
       {
         title: { fr: 'Tester', en: 'Test' },
         text: {
-          fr: 'Tests unitaires et applicatifs (xUnit, NSubstitute) et stratégie de couverture.',
-          en: 'Unit and application tests (xUnit, NSubstitute) and a coverage strategy.',
+          fr: 'J’écris des tests unitaires et applicatifs (xUnit, NSubstitute) et je garde un œil sur la couverture.',
+          en: 'I write unit and application tests (xUnit, NSubstitute) and keep an eye on coverage.',
         },
       },
       {
         title: { fr: 'Déployer & faire évoluer', en: 'Deploy & evolve' },
         text: {
-          fr: 'Conteneurisation, CI/CD (GitHub Actions, Azure DevOps), déploiement sur Azure, puis run et évolution.',
-          en: 'Containerization, CI/CD (GitHub Actions, Azure DevOps), deployment to Azure, then run and evolution.',
+          fr: 'Je conteneurise, je mets en place la CI/CD (GitHub Actions, Azure DevOps), je déploie sur Azure, puis je fais vivre le produit.',
+          en: 'I containerize, set up CI/CD (GitHub Actions, Azure DevOps), deploy to Azure, then keep the product alive and evolving.',
         },
       },
     ],
@@ -89,12 +89,12 @@ export const site = {
   },
   seo: {
     title: {
-      fr: 'Denis Bucspun — Développeur Full Stack & Ingénieur IA',
-      en: 'Denis Bucspun — Full Stack Developer & AI Engineer',
+      fr: 'Denis Bucspun, développeur Full Stack et ingénieur IA',
+      en: 'Denis Bucspun, Full Stack Developer and AI Engineer',
     },
     description: {
-      fr: 'Portfolio : développement full stack (React, .NET), architecture logicielle, IA générative et DevOps.',
-      en: 'Portfolio: full-stack development (React, .NET), software architecture, generative AI and DevOps.',
+      fr: 'Mon portfolio : développement full stack (React, .NET), architecture logicielle, IA générative et DevOps.',
+      en: 'My portfolio: full-stack development (React, .NET), software architecture, generative AI and DevOps.',
     },
   },
 } as const

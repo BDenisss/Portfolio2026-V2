@@ -1,10 +1,10 @@
 {
   "eyebrow": "Work",
-  "title": "Selected projects",
+  "title": "My projects",
   "filterLabel": "Filter by technology",
   "filterAll": "All",
-  "empty": "No project for this technology.",
-  "more": "Show more projects",
+  "empty": "I don’t have a project with this technology yet.",
+  "more": "See more projects",
   "open": "View project",
   "back": "All projects",
   "client": "Client",

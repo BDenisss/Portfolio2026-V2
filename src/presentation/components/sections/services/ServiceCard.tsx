@@ -17,7 +17,7 @@ export function ServiceCard({ service, cta }: { service: Service; cta: string })
       href="#contact"
       interactive
       data-testid="service-card"
-      aria-label={`${service.title} — ${cta}`}
+      aria-label={`${service.title}, ${cta}`}
       className="group flex h-full min-h-56 flex-col gap-4 p-6"
     >
       <span

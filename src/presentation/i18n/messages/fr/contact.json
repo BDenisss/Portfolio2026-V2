@@ -1,8 +1,13 @@
 {
   "eyebrow": "Contact",
-  "title": "Discutons de votre projet",
-  "intro": "Un projet, une question, une opportunité ? Écris-moi, je réponds rapidement.",
-  "fields": { "name": "Nom", "email": "E-mail", "topic": "Sujet", "message": "Message" },
+  "title": "Parlons de ton projet",
+  "intro": "Un projet, une question, une idée ? Écris-moi, je te réponds vite.",
+  "fields": {
+    "name": "Nom",
+    "email": "E-mail",
+    "topic": "Sujet",
+    "message": "Message"
+  },
   "topics": {
     "project": "Un projet",
     "ai": "IA générative",
@@ -11,11 +16,11 @@
   },
   "submit": "Envoyer le message",
   "sending": "Envoi…",
-  "success": "Merci ! Ton message est bien parti.",
-  "error": "Le message n’a pas pu être envoyé. Réessaie ou écris-moi directement par e-mail.",
-  "rateLimited": "Trop de messages en peu de temps. Réessaie dans quelques minutes.",
+  "success": "Merci, j’ai bien reçu ton message ! Je te réponds très vite.",
+  "error": "Oups, le message n’a pas pu partir. Réessaie, ou écris-moi directement par e-mail.",
+  "rateLimited": "Doucement, tu as envoyé beaucoup de messages d’un coup. Réessaie dans quelques minutes.",
   "details": {
-    "title": "Coordonnées",
+    "title": "Me joindre",
     "email": "E-mail",
     "linkedin": "LinkedIn",
     "github": "GitHub",

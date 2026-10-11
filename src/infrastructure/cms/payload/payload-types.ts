@@ -220,7 +220,7 @@ export interface Stack {
   slug?: string | null;
   category: 'language' | 'frontend' | 'backend' | 'architecture' | 'testing' | 'devops' | 'security' | 'ai';
   /**
-   * Tape un slug Simple Icons (ex. docker, react — voir simpleicons.org) ou uploade un SVG. Sans icône, un monogramme est affiché.
+   * Tape un slug Simple Icons (ex. docker, react, voir simpleicons.org) ou uploade un SVG. Sans icône, un monogramme est affiché.
    */
   icon?: {
     simpleIconSlug?: string | null;
@@ -243,7 +243,7 @@ export interface Project {
    */
   slug?: string | null;
   /**
-   * Une phrase — affichée sur la carte.
+   * Une phrase, affichée sur la carte.
    */
   tagline?: string | null;
   summary?: string | null;
@@ -762,11 +762,11 @@ export interface Cinematic {
    */
   avatarModel?: (number | null) | Media;
   /**
-   * Portrait de l’avatar (PNG/WebP transparent, ≤ 150 Ko) — repli si pas de 3D.
+   * Portrait de l’avatar (PNG/WebP transparent, ≤ 150 Ko). Sert de repli si pas de 3D.
    */
   avatarPortrait?: (number | null) | Media;
   /**
-   * Poster du hero (WebP/AVIF ≤ 150 Ko) — première image affichée (LCP).
+   * Poster du hero (WebP/AVIF ≤ 150 Ko). C’est la première image affichée (LCP).
    */
   heroPoster?: (number | null) | Media;
   /**
@@ -778,7 +778,7 @@ export interface Cinematic {
      */
     mp4?: (number | null) | Media;
     /**
-     * Fichier .webm (VP9) — optionnel.
+     * Fichier .webm (VP9), optionnel.
      */
     webm?: (number | null) | Media;
   };
@@ -791,7 +791,7 @@ export interface Cinematic {
      */
     mp4?: (number | null) | Media;
     /**
-     * Fichier .webm (VP9) — optionnel.
+     * Fichier .webm (VP9), optionnel.
      */
     webm?: (number | null) | Media;
   };

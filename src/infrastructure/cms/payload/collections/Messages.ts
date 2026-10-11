@@ -8,7 +8,7 @@ const toOption = (value: string) => ({ label: value, value })
 
 export const Messages: CollectionConfig = {
   slug: 'messages',
-  // Création uniquement via la server action `submitContact` (API locale, overrideAccess) — jamais via REST/GraphQL.
+  // Création uniquement via la server action `submitContact` (API locale, overrideAccess), jamais via REST/GraphQL.
   access: { create: () => false, read: isAdmin, update: isAdmin, delete: isAdmin },
   admin: {
     useAsTitle: 'name',

@@ -14,5 +14,5 @@ export function formatRange(
   locale: Locale,
   nowLabel: string,
 ): string {
-  return `${formatMonth(start, locale)} — ${end ? formatMonth(end, locale) : nowLabel}`
+  return `${formatMonth(start, locale)} – ${end ? formatMonth(end, locale) : nowLabel}`
 }

@@ -1,10 +1,10 @@
 {
   "notFoundTitle": "Page introuvable",
-  "notFoundText": "Cette page n’existe pas ou a été déplacée.",
+  "notFoundText": "Cette page n’existe pas, ou elle a changé d’adresse.",
   "backHome": "Retour à l’accueil",
-  "generic": "Une erreur est survenue. Réessaie dans un instant.",
-  "required": "Ce champ est obligatoire.",
-  "emailInvalid": "Adresse e-mail invalide.",
-  "tooShort": "Trop court.",
-  "tooLong": "Trop long."
+  "generic": "Quelque chose s’est mal passé. Réessaie dans un instant.",
+  "required": "Ce champ est à remplir.",
+  "emailInvalid": "Cette adresse e-mail ne semble pas valide.",
+  "tooShort": "Un peu court, ajoute quelques mots.",
+  "tooLong": "Un peu long, essaie de raccourcir."
 }

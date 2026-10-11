@@ -19,7 +19,7 @@ const videoPair = (name: string, description: string): Field => ({
   admin: { description },
   fields: [
     slot('mp4', 'Fichier .mp4 (H.264).', video('mp4')),
-    slot('webm', 'Fichier .webm (VP9) — optionnel.', video('webm')),
+    slot('webm', 'Fichier .webm (VP9), optionnel.', video('webm')),
   ],
 })
 
@@ -39,12 +39,12 @@ export const Cinematic: GlobalConfig = {
     }),
     slot(
       'avatarPortrait',
-      'Portrait de l’avatar (PNG/WebP transparent, ≤ 150 Ko) — repli si pas de 3D.',
+      'Portrait de l’avatar (PNG/WebP transparent, ≤ 150 Ko). Sert de repli si pas de 3D.',
       image,
     ),
     slot(
       'heroPoster',
-      'Poster du hero (WebP/AVIF ≤ 150 Ko) — première image affichée (LCP).',
+      'Poster du hero (WebP/AVIF ≤ 150 Ko). C’est la première image affichée (LCP).',
       image,
     ),
     videoPair('heroVideoDesktop', 'Vidéo d’intro 16:9 (≤ 4 Mo).'),

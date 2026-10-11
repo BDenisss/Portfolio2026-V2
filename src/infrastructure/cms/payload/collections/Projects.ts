@@ -47,7 +47,7 @@ export const Projects: CollectionConfig = {
       name: 'tagline',
       type: 'text',
       localized: true,
-      admin: { description: 'Une phrase — affichée sur la carte.' },
+      admin: { description: 'Une phrase, affichée sur la carte.' },
     },
     { name: 'summary', type: 'textarea', localized: true },
     { name: 'caseStudy', type: 'richText', localized: true },

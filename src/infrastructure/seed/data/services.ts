@@ -7,8 +7,8 @@ export const services: readonly SeedService[] = [
     tint: 'amber',
     title: { fr: 'Développement Full Stack', en: 'Full Stack Development' },
     description: {
-      fr: 'Applications web et mobiles de bout en bout : React, Next.js et React Native / Expo côté front, ASP.NET Core et API REST côté back.',
-      en: 'End-to-end web and mobile applications: React, Next.js and React Native / Expo on the front end, ASP.NET Core and REST APIs on the back end.',
+      fr: 'Des applications web et mobiles de A à Z : React, Next.js et React Native / Expo côté front, ASP.NET Core et API REST côté back.',
+      en: 'Web and mobile applications from A to Z: React, Next.js and React Native / Expo on the front end, ASP.NET Core and REST APIs on the back end.',
     },
   },
   {
@@ -17,8 +17,8 @@ export const services: readonly SeedService[] = [
     tint: 'violet',
     title: { fr: 'Architecture & qualité', en: 'Architecture & quality' },
     description: {
-      fr: 'Clean Architecture, DDD et architecture hexagonale pour isoler la logique métier ; tests xUnit / NSubstitute et stratégie de couverture.',
-      en: 'Clean Architecture, DDD and hexagonal architecture to isolate business logic; xUnit / NSubstitute tests and a coverage strategy.',
+      fr: 'Clean Architecture, DDD et architecture hexagonale pour garder la logique métier bien à l’abri, avec des tests xUnit / NSubstitute et un suivi de la couverture.',
+      en: 'Clean Architecture, DDD and hexagonal architecture to keep business logic safe and sound, with xUnit / NSubstitute tests and coverage tracking.',
     },
   },
   {
@@ -27,8 +27,8 @@ export const services: readonly SeedService[] = [
     tint: 'blue',
     title: { fr: 'IA générative & agents', en: 'Generative AI & agents' },
     description: {
-      fr: 'LLM, agents et systèmes multi-agents, MCP, RAG et tool calling pour connecter les modèles à des données, des outils et des services.',
-      en: 'LLMs, agents and multi-agent systems, MCP, RAG and tool calling to connect models to data, tools and services.',
+      fr: 'LLM, agents et systèmes multi-agents, MCP, RAG et tool calling, pour brancher les modèles sur vos données, vos outils et vos services.',
+      en: 'LLMs, agents and multi-agent systems, MCP, RAG and tool calling, to plug models into your data, tools and services.',
     },
   },
   {
@@ -37,8 +37,8 @@ export const services: readonly SeedService[] = [
     tint: 'teal',
     title: { fr: 'Cloud, DevOps & sécurité', en: 'Cloud, DevOps & security' },
     description: {
-      fr: 'Docker, Azure, CI/CD (GitHub Actions, Azure DevOps) ; authentification OAuth 2.0 / PKCE et Microsoft Entra ID (SSO).',
-      en: 'Docker, Azure, CI/CD (GitHub Actions, Azure DevOps); OAuth 2.0 / PKCE authentication and Microsoft Entra ID (SSO).',
+      fr: 'Docker, Azure et CI/CD (GitHub Actions, Azure DevOps), avec une authentification OAuth 2.0 / PKCE et Microsoft Entra ID (SSO).',
+      en: 'Docker, Azure and CI/CD (GitHub Actions, Azure DevOps), with OAuth 2.0 / PKCE authentication and Microsoft Entra ID (SSO).',
     },
   },
 ]

@@ -25,7 +25,7 @@ export default buildConfig({
   admin: {
     user: Users.slug,
     importMap: { baseDir: path.resolve(dirname, '../../..') }, // = src/
-    meta: { titleSuffix: ' — Portfolio CMS' },
+    meta: { titleSuffix: ' | Portfolio CMS' },
   },
   collections: [Users, Media, Stacks, Projects, Services, Experiences, Messages],
   globals: [Site, Cinematic],

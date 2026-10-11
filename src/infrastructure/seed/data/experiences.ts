@@ -37,8 +37,8 @@ export const experiences: readonly SeedExperience[] = [
       en: 'Full Stack & DevOps Developer (work-study)',
     },
     summary: {
-      fr: 'Conception et développement de solutions internes dans un contexte Logiciel & IA, de l’idée au prototype, jusqu’au déploiement et au run, en lien direct avec les besoins des utilisateurs.',
-      en: 'Design and development of internal solutions in a Software & AI context, from idea to prototype through to deployment and run, in direct contact with users’ needs.',
+      fr: 'J’ai conçu et développé des solutions internes dans un contexte Logiciel & IA, de l’idée au prototype puis jusqu’au déploiement et au suivi, toujours au plus près des besoins des utilisateurs.',
+      en: 'I designed and built internal solutions in a Software & AI context, from idea to prototype and on to deployment and run, always close to users’ needs.',
     },
     highlights: {
       fr: [
@@ -72,8 +72,8 @@ export const experiences: readonly SeedExperience[] = [
     stacks: ['angular', 'primeng', 'java', 'figma'],
     role: { fr: 'Développeur Full Stack (alternance)', en: 'Full Stack Developer (work-study)' },
     summary: {
-      fr: 'Application interne de supervision, dans un fonctionnement agile et itératif.',
-      en: 'Internal supervision application, in an agile and iterative way of working.',
+      fr: 'Une application interne de supervision, construite de façon agile et itérative.',
+      en: 'An internal supervision application, built in an agile and iterative way.',
     },
     highlights: {
       fr: [
@@ -97,8 +97,8 @@ export const experiences: readonly SeedExperience[] = [
     stacks: ['symfony', 'mysql', 'javascript', 'tailwind-css', 'twig', 'sql'],
     role: { fr: 'Développeur Full Stack', en: 'Full Stack Developer' },
     summary: {
-      fr: 'Application web de quiz : algorithmes de scoring, requêtes SQL et explications automatiques.',
-      en: 'Quiz web application: scoring algorithms, SQL queries and automatic explanations.',
+      fr: 'Une application web de quiz : algorithmes de scoring, requêtes SQL et explications automatiques.',
+      en: 'A quiz web application: scoring algorithms, SQL queries and automatic explanations.',
     },
     highlights: {
       fr: [
@@ -122,11 +122,11 @@ export const experiences: readonly SeedExperience[] = [
     end: '2023-01-01',
     stacks: ['php', 'mysql', 'javascript', 'sql'],
     role: {
-      fr: 'Développeur Full Stack, en autonomie — « Dywiki’s »',
-      en: 'Full Stack Developer, self-directed — “Dywiki’s”',
+      fr: 'Développeur Full Stack, en autonomie (« Dywiki’s »)',
+      en: 'Full Stack Developer, self-directed (“Dywiki’s”)',
     },
     summary: {
-      fr: 'Base de données de films, conçue et développée en autonomie.',
+      fr: 'Une base de données de films, conçue et développée seul.',
       en: 'A film database, designed and built independently.',
     },
     highlights: {
@@ -143,19 +143,19 @@ export const experiences: readonly SeedExperience[] = [
   {
     key: 'iim',
     kind: 'education',
-    organization: 'IIM Digital School — Pôle Léonard de Vinci',
+    organization: 'IIM Digital School, Pôle Léonard de Vinci',
     location: 'Paris',
     // Denis confirme 2024 - 2026 (le CV indique 2025 - 2026) ; seules les années sont connues : rentrée de septembre supposée.
     start: '2024-09-01',
     end: '2026-09-01',
     stacks: [],
     role: {
-      fr: 'Master — Ingénierie Web et Innovation Digitale',
-      en: 'Master’s degree — Web Engineering & Digital Innovation',
+      fr: 'Master en Ingénierie Web et Innovation Digitale',
+      en: 'Master’s degree in Web Engineering & Digital Innovation',
     },
     summary: {
-      fr: 'Mémoire professionnel : « De l’innovation interne à l’industrialisation logicielle » — cadres qualité, dette technique et transition du prototype vers un logiciel maintenable.',
-      en: 'Professional thesis: “From internal innovation to software industrialization” — quality frameworks, technical debt and the transition from prototype to maintainable software.',
+      fr: 'Mémoire professionnel : « De l’innovation interne à l’industrialisation logicielle ». J’y traite des cadres qualité, de la dette technique et du passage d’un prototype à un logiciel maintenable.',
+      en: 'Professional thesis: “From internal innovation to software industrialization”. It covers quality frameworks, technical debt and the move from a prototype to maintainable software.',
     },
     highlights: { fr: [], en: [] },
   },

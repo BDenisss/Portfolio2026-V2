@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: LocaleParams): Promise<Metada
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? DEFAULT_SITE_URL
   return {
     metadataBase: new URL(siteUrl),
-    title: { default: t('metaTitle'), template: `%s — ${t('siteName')}` },
+    title: { default: t('metaTitle'), template: `%s | ${t('siteName')}` },
     description: t('metaDescription'),
     alternates: { canonical: `/${locale}`, languages: { fr: '/fr', en: '/en' } },
     openGraph: { type: 'website', siteName: t('siteName'), locale },

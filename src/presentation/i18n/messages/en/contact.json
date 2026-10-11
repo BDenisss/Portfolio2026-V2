@@ -1,8 +1,13 @@
 {
   "eyebrow": "Contact",
   "title": "Let’s talk about your project",
-  "intro": "A project, a question, an opportunity? Write to me, I reply quickly.",
-  "fields": { "name": "Name", "email": "Email", "topic": "Subject", "message": "Message" },
+  "intro": "A project, a question, an idea? Write to me, I’ll get back to you quickly.",
+  "fields": {
+    "name": "Name",
+    "email": "Email",
+    "topic": "Subject",
+    "message": "Message"
+  },
   "topics": {
     "project": "A project",
     "ai": "Generative AI",
@@ -11,11 +16,11 @@
   },
   "submit": "Send message",
   "sending": "Sending…",
-  "success": "Thank you! Your message is on its way.",
-  "error": "The message could not be sent. Try again or write to me directly by email.",
-  "rateLimited": "Too many messages in a short time. Please try again in a few minutes.",
+  "success": "Thanks, I got your message! I’ll reply very soon.",
+  "error": "Oops, the message didn’t go through. Try again, or write to me directly by email.",
+  "rateLimited": "Easy there, that’s a lot of messages at once. Please try again in a few minutes.",
   "details": {
-    "title": "Details",
+    "title": "Get in touch",
     "email": "Email",
     "linkedin": "LinkedIn",
     "github": "GitHub",

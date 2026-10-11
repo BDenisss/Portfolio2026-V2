@@ -15,7 +15,7 @@ const strings = (value: unknown): string[] => {
   return []
 }
 
-describe('seed — stacks', () => {
+describe('seed : stacks', () => {
   it('slugs uniques', () => expect(stackSlugs.size).toBe(stacks.length))
   it('catégories valides', () => {
     const valid = new Set<string>(STACK_CATEGORIES)
@@ -33,7 +33,7 @@ describe('seed — stacks', () => {
   it('≥ 28 technologies', () => expect(stacks.length).toBeGreaterThanOrEqual(28))
 })
 
-describe('seed — références', () => {
+describe('seed : références', () => {
   it('projets et expériences ne citent que des stacks existants', () => {
     for (const entry of [...projects, ...experiences]) {
       for (const slug of entry.stacks) expect(stackSlugs.has(slug), slug).toBe(true)
@@ -55,7 +55,7 @@ describe('seed — références', () => {
   })
 })
 
-describe('seed — contenu', () => {
+describe('seed : contenu', () => {
   const all = strings([site, services, experiences, projects])
   it('aucune chaîne vide', () => {
     for (const text of all) expect(text.trim().length).toBeGreaterThan(0)

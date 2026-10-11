@@ -38,7 +38,7 @@ const TEXT: Array<[string, string, string]> = [
   ['success', 'glass', glass],
 ]
 
-describe('tokens.css — contrastes texte ≥ 4.5', () => {
+describe('tokens.css : contrastes texte ≥ 4.5', () => {
   it.each(TEXT)('%s sur %s', (name, _on, bg) => {
     expect(contrastRatio(t[name]!, bg)).toBeGreaterThanOrEqual(4.5)
   })
