@@ -1,39 +1,42 @@
-/* Couche `components` : les utilitaires Tailwind (couche `utilities`) doivent pouvoir surcharger le verre. */
+/*
+ * Matériau « Liquid Glass » en 3 couches, sans changer le HTML des composants :
+ *   .glass            le contenu (aucun fond propre) et l'ombre portée ;
+ *   .glass::before    la lentille : flou du décor + réfraction SVG (Chromium) ;
+ *   .glass::after     le voile blanc translucide et le reflet spéculaire (liseré lumineux en haut à gauche).
+ * Couche `components` : les utilitaires Tailwind (couche `utilities`) doivent pouvoir surcharger le verre.
+ */
 @layer components {
   .glass {
     position: relative;
     isolation: isolate;
-    background: var(--glass-fill);
-    border: 1px solid var(--glass-border);
-    box-shadow:
-      var(--shadow-glass),
-      inset 0 1px 0 rgb(255 255 255 / 0.9),
-      inset 0 -1px 0 rgb(255 255 255 / 0.35);
+    background: transparent;
     border-radius: var(--radius-card);
+    box-shadow: var(--shadow-glass);
     transition:
       transform 220ms var(--ease-glass),
-      box-shadow 220ms var(--ease-glass),
-      background-color 220ms var(--ease-glass);
+      box-shadow 220ms var(--ease-glass);
   }
-  .glass::before {
-    /* reflet spéculaire */
+  .glass::before,
+  .glass::after {
     content: '';
     position: absolute;
     inset: 0;
-    z-index: -1;
     border-radius: inherit;
     pointer-events: none;
-    background: linear-gradient(135deg, rgb(255 255 255 / 0.55) 0%, transparent 40%);
+  }
+  .glass::before {
+    z-index: -2;
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%) brightness(1.08);
+    backdrop-filter: blur(var(--glass-blur)) saturate(150%) brightness(1.08);
   }
   .glass::after {
-    /* liseré extérieur */
-    content: '';
-    position: absolute;
-    inset: -1px;
     z-index: -1;
-    border-radius: inherit;
-    pointer-events: none;
-    box-shadow: 0 0 0 1px var(--glass-hairline);
+    background:
+      linear-gradient(135deg, rgb(255 255 255 / 0.4) 0%, transparent 38%), var(--glass-fill);
+    box-shadow:
+      inset 1px 1px 0 var(--glass-highlight),
+      inset 0 0 5px var(--glass-highlight),
+      inset -1px -1px 0 rgb(255 255 255 / 0.3);
   }
   .glass--surface {
     border-radius: var(--radius-frame);
@@ -44,47 +47,61 @@
   .glass--pill,
   .glass--dock {
     border-radius: var(--radius-pill);
-    background: var(--glass-fill-strong);
+  }
+  .glass--pill::after,
+  .glass--dock::after {
+    background:
+      linear-gradient(135deg, rgb(255 255 255 / 0.4) 0%, transparent 38%), var(--glass-fill-strong);
+  }
+  /* Simple liseré lumineux, sans flou ni voile : à poser sur un média (cadre de l'avatar). */
+  .glass--rim::before {
+    display: none;
+  }
+  .glass--rim::after {
+    background: none;
+  }
+  .glass--rim {
+    box-shadow: none;
   }
   .glass[data-interactive] {
     cursor: pointer;
   }
   .glass[data-interactive]:hover {
     transform: translateY(-2px);
-    box-shadow:
-      0 14px 40px rgb(70 50 140 / 0.14),
-      inset 0 1px 0 rgb(255 255 255 / 0.95);
+    box-shadow: 0 14px 40px rgb(70 50 140 / 0.18);
   }
   .glass[data-interactive]:active {
     transform: scale(0.985);
   }
 
-  @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
-    .glass {
-      -webkit-backdrop-filter: blur(24px) saturate(160%);
-      backdrop-filter: blur(24px) saturate(160%);
-    }
+  /* Réfraction SVG sur la lentille seulement (jamais sur le contenu) : Chromium, jamais requise (drapeau posé par <RefractionFlag/>) */
+  html[data-refract='on'] .glass[data-refract]::before {
+    filter: url(#lg-refract) saturate(120%) brightness(1.15);
   }
-  /* Réfraction SVG : Chromium uniquement, jamais requise (drapeau posé par <RefractionFlag/>) */
-  html[data-refract='on'] .glass[data-refract] {
-    -webkit-backdrop-filter: url(#lg-refract) blur(18px) saturate(170%);
-    backdrop-filter: url(#lg-refract) blur(18px) saturate(170%);
-  }
-  /* Repli opaque. La réfraction est reprise ici : son sélecteur, plus spécifique que `.glass`,
-     garderait sinon flou et réfraction sur la nav malgré la préférence. */
+
+  /* Repli opaque. La réfraction est reprise ici : son sélecteur, plus spécifique, garderait sinon flou et lentille. */
   @media (prefers-reduced-transparency: reduce) {
-    .glass,
-    .glass--pill,
-    .glass--dock,
-    html[data-refract='on'] .glass[data-refract] {
-      background: var(--opaque-glass);
+    .glass::before,
+    html[data-refract='on'] .glass[data-refract]::before {
       -webkit-backdrop-filter: none;
       backdrop-filter: none;
+      filter: none;
+    }
+    .glass::after,
+    .glass--pill::after,
+    .glass--dock::after {
+      background: var(--opaque-glass);
+    }
+    .glass--rim::after {
+      background: none;
     }
   }
   @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-    .glass {
+    .glass::after {
       background: var(--opaque-glass);
+    }
+    .glass--rim::after {
+      background: none;
     }
   }
   /* Scrim pour tout texte posé sur média */

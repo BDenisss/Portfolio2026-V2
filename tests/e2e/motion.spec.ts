@@ -29,9 +29,11 @@ const isFrostedGlass = ({ backdrop, alpha }: GlassMaterial): boolean =>
 async function readGlassControls(page: Page): Promise<GlassMaterial[]> {
   const styles = await page.locator(GLASS_CONTROLS).evaluateAll((els) =>
     els.map((el) => {
-      const style = getComputedStyle(el)
+      // Lentille (flou) sur ::before, voile (fond) sur ::after : le verre est en couches.
+      const lens = getComputedStyle(el, '::before')
+      const veil = getComputedStyle(el, '::after')
       const label = el.getAttribute('aria-label') ?? el.textContent?.trim() ?? el.tagName
-      return { label, backdrop: style.backdropFilter, background: style.backgroundColor }
+      return { label, backdrop: lens.backdropFilter, background: veil.backgroundColor }
     }),
   )
   return styles.map(({ label, backdrop, background }) => ({

@@ -5,10 +5,18 @@ import { parseTokens } from '@/presentation/design/tokens'
 
 const css = readFileSync('src/presentation/styles/tokens.css', 'utf8')
 const t = parseTokens(css)
-const glass = composite('#FFFFFF', 0.62, t.bg!)
-const glassSubtle = composite('#FFFFFF', 0.4, t.bg!)
+// Opacité du voile blanc lue dans les tokens : le test suit le CSS au lieu de valeurs recopiées.
+const alphaOf = (token: string): number => {
+  const declaration = new RegExp('--' + token + String.raw`:\s*rgb\([^/]*/\s*([\d.]+)\s*\)`).exec(
+    css,
+  )
+  return Number(declaration?.[1])
+}
+const glass = composite('#FFFFFF', alphaOf('glass-fill'), t.bg!)
+const glassSubtle = composite('#FFFFFF', alphaOf('glass-fill-subtle'), t.bg!)
 // Pire fond du dégradé de page, échantillonné sous le texte rendu (revue T19, F3) : plus sombre que --bg.
 const gradientWorst = '#D3D2F6'
+const glassOnWorst = composite('#FFFFFF', alphaOf('glass-fill'), gradientWorst)
 
 const TEXT: Array<[string, string, string]> = [
   ['ink', 'bg', t.bg!],
@@ -24,6 +32,8 @@ const TEXT: Array<[string, string, string]> = [
   ['accent-text', 'gradient-worst', gradientWorst],
   ['ink-2', 'gradient-worst', gradientWorst],
   ['ink-muted', 'gradient-worst', gradientWorst],
+  ['accent-text', 'glass-on-worst', glassOnWorst],
+  ['ink-muted', 'glass-on-worst', glassOnWorst],
   ['danger', 'glass', glass],
   ['success', 'glass', glass],
 ]

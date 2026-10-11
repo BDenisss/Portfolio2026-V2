@@ -76,7 +76,7 @@ export function HeroStage({ cinematic, avatarAlt }: HeroStageProps) {
       <Glass
         variant="surface"
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-transparent backdrop-filter-none"
+        className="glass--rim pointer-events-none absolute inset-0"
       />
     </div>
   )
