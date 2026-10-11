@@ -44,16 +44,24 @@ export function Hero({ site, cinematic }: HeroProps) {
       <HeroMotion className="relative overflow-x-clip">
         <div className="container-x grid min-h-[100svh] items-center gap-10 pt-28 pb-12 lg:grid-cols-12 lg:pt-24">
           <div data-hero-copy className="space-y-6 lg:col-span-7">
-            <Eyebrow>{hero.eyebrow}</Eyebrow>
+            <Eyebrow data-split="chars">{hero.eyebrow}</Eyebrow>
             <h1
               id="hero-title"
+              data-split="mask"
+              data-split-delay="0.2"
               className="font-display text-[clamp(2.75rem,1rem+6vw,5.5rem)] leading-[0.95] font-semibold"
             >
               {site.name}
             </h1>
             <RotatingTitle titles={hero.rotatingTitles} label={t('titlesLabel')} />
-            {/* Pas de Reveal ici : c'est l'élément du LCP, masqué tant que le JS n'a pas tourné il retardait le rendu (LCP 4,85 s contre 2,29 s). */}
-            <p className="max-w-prose text-lg text-[var(--ink-2)]">{site.tagline}</p>
+            {/* Élément du LCP : apparition mot par mot, masquée seulement le temps que GSAP découpe le texte (voir globals.css). */}
+            <p
+              data-split="words"
+              data-split-delay="0.55"
+              className="max-w-prose text-lg text-[var(--ink-2)]"
+            >
+              {site.tagline}
+            </p>
             <Reveal className="flex flex-wrap items-center gap-3">
               <Button size="lg" magnetic href="#projects" icon="arrow-up-right">
                 {hero.ctaPrimary || t('ctaPrimary')}

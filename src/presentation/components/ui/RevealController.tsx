@@ -2,6 +2,7 @@
 import { useEffect } from 'react'
 import { usePathname } from '@/presentation/i18n/navigation'
 import { gsap, ScrollTrigger, useGSAP } from '@/presentation/lib/gsap'
+import { revealSplitText } from './split-reveal'
 
 const TRIGGER_START = 'top 92%'
 const REVEAL_SECONDS = 0.6
@@ -78,8 +79,13 @@ export function RevealController() {
         try {
           revealOnEnter(items.filter((item) => item.dataset.reveal !== 'right'))
           revealFromRightOnScroll(items.filter((item) => item.dataset.reveal === 'right'))
+          revealSplitText(gsap.utils.toArray<HTMLElement>('[data-split]'))
         } catch {
-          gsap.set(items, { clearProps: 'all' }) // échec GSAP : le contenu doit rester visible
+          // échec GSAP : le contenu doit rester visible
+          gsap.set(items, { clearProps: 'all' })
+          document
+            .querySelectorAll('[data-split]')
+            .forEach((element) => element.classList.add('split-ready'))
         }
       })
       return () => media.revert()

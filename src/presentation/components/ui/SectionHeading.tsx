@@ -19,8 +19,13 @@ export function SectionHeading({
 }: SectionHeadingProps) {
   return (
     <header className={cn('mb-8 md:mb-12', align === 'center' && 'text-center', className)}>
-      <Eyebrow>{eyebrow}</Eyebrow>
-      <h2 id={id} className="mt-2 text-[clamp(1.75rem,1rem+3vw,3rem)] leading-tight font-semibold">
+      <Eyebrow data-split="chars">{eyebrow}</Eyebrow>
+      <h2
+        id={id}
+        data-split="mask"
+        data-split-delay="0.15"
+        className="mt-2 text-[clamp(1.75rem,1rem+3vw,3rem)] leading-tight font-semibold"
+      >
         {title}
       </h2>
     </header>

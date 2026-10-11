@@ -2,19 +2,19 @@ import { expect, test } from '@playwright/test'
 
 test('À propos : bio et statistiques', async ({ page }) => {
   await page.goto('/fr#about')
-  await expect(page.locator('#about')).toContainText('Développeur Full Stack')
+  await expect(page.locator('#about')).toContainText('Développeur full stack')
   const stats = page.getByTestId('stat-card')
   await expect(stats).toHaveCount(4)
   await expect(stats.first()).toContainText(/\d+\+/) // années calculées : ne jamais figer la valeur
 })
 
-test('À propos : les statistiques viennent du contenu (5 parcours dont 4 expériences, 4 projets)', async ({
+test('À propos : les statistiques viennent du contenu (5 parcours dont 4 expériences, 3 projets)', async ({
   page,
 }) => {
   await page.goto('/fr')
   const stats = page.getByTestId('stat-card')
   await expect(stats.nth(1)).toContainText('4')
-  await expect(stats.nth(3)).toContainText('4')
+  await expect(stats.nth(3)).toContainText('3')
 })
 
 test('Services : 4 cartes cliquables ≥ 44px', async ({ page }) => {

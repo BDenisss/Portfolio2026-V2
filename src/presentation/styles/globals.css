@@ -175,4 +175,29 @@
       transform: none;
     }
   }
+
+  /*
+   * Textes animés (split-reveal.ts) : masqués le temps que GSAP les découpe, pour éviter un flash du texte final.
+   * Filet de sécurité : si le JS n'aboutit pas, ils réapparaissent seuls après 2,5 s.
+   */
+  @keyframes split-failsafe {
+    to {
+      opacity: 1;
+    }
+  }
+  .js [data-split]:not(.split-ready) {
+    opacity: 0;
+    animation: split-failsafe 0.3s 2.5s forwards;
+  }
+  /* Le masque d'un mot coupe ce qui dépasse : on lui laisse la place des jambages (p, g, j). */
+  .split-word-mask {
+    padding-bottom: 0.14em;
+    margin-bottom: -0.14em;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .js [data-split]:not(.split-ready) {
+      opacity: 1;
+      animation: none;
+    }
+  }
 }
