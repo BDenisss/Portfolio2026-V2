@@ -7,7 +7,7 @@ import { ProjectsCarousel } from './projects/ProjectsCarousel'
 export function Projects({ projects }: { projects: readonly ProjectSummary[] }) {
   const t = useTranslations('projects')
   return (
-    <Section id="projects" labelledBy="projects-title">
+    <Section id="projects" labelledBy="projects-title" className="overflow-x-clip">
       <SectionHeading eyebrow={t('eyebrow')} title={t('title')} id="projects-title" />
       <ProjectsCarousel projects={projects} />
     </Section>

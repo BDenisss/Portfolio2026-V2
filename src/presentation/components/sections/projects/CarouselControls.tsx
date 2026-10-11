@@ -56,10 +56,10 @@ export function CarouselControls(props: CarouselControlsProps) {
       {!reduced && (
         <button
           type="button"
-          className="min-h-11 cursor-pointer rounded-full px-3 text-sm text-[var(--ink-2)] underline-offset-4 hover:underline"
-          aria-pressed={!playing}
+          className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full px-3 text-sm text-[var(--ink-2)] underline-offset-4 hover:underline"
           onClick={onTogglePlaying}
         >
+          <UiIcon name={playing ? 'pause' : 'play'} className="size-4" />
           {playing ? t('pause') : t('play')}
         </button>
       )}

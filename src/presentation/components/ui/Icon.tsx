@@ -19,6 +19,8 @@ import {
   House,
   Layers,
   Mail,
+  Pause,
+  Play,
   Rocket,
   Send,
   ShieldCheck,
@@ -64,6 +66,8 @@ const UI_ICONS = {
   briefcase: Briefcase,
   code: Code,
   sparkles: Sparkles,
+  pause: Pause,
+  play: Play,
 } as const satisfies Record<string, LucideIcon>
 
 export type UiIconName = keyof typeof UI_ICONS
