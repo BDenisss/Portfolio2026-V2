@@ -35,8 +35,8 @@ export const site = {
       en: 'Doing things well, without overcomplicating',
     },
     bio: {
-      fr: 'Je suis développeur full stack et j’ai déjà conçu et construit des applications web et mobiles de bout en bout. Mon terrain de jeu : les backends .NET et ASP.NET Core, les frontends React, React Native et TypeScript, et l’intégration d’API externes. Je travaille avec la Clean Architecture, le Domain-Driven Design, les tests automatisés et le cloud Azure. Côté IA, je conçois des solutions d’IA générative (LLM, agents, systèmes multi-agents, MCP, RAG, tool calling) et je m’appuie sur Claude Code et Codex pour avancer vite, sans lâcher la qualité ni la maintenabilité. J’aime aussi peser les compromis entre dette technique, qualité et vitesse de livraison.',
-      en: 'I’m a full-stack developer and I’ve designed and built web and mobile applications from end to end. My playground: .NET and ASP.NET Core backends, React, React Native and TypeScript frontends, and external API integration. I work with Clean Architecture, Domain-Driven Design, automated testing and the Azure cloud. On the AI side, I design generative AI solutions (LLMs, agents, multi-agent systems, MCP, RAG, tool calling) and rely on Claude Code and Codex to move fast without giving up quality or maintainability. I also enjoy weighing the trade-offs between technical debt, quality and delivery speed.',
+      fr: 'Développeur full stack, je construis des applications web et mobiles de bout en bout : .NET et ASP.NET Core côté back, React, React Native et TypeScript côté front, déployées sur Azure. Je travaille en Clean Architecture avec des tests automatisés. Côté IA, je conçois des agents et des solutions RAG, et je m’aide de Claude Code et Codex pour avancer vite.',
+      en: 'I’m a full-stack developer building web and mobile apps end to end: .NET and ASP.NET Core on the back end, React, React Native and TypeScript on the front, deployed on Azure. I work with Clean Architecture and automated tests. On the AI side, I build agents and RAG solutions, and use Claude Code and Codex to move fast.',
     },
     autoStats: true,
   },
