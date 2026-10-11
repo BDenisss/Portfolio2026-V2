@@ -26,7 +26,7 @@ test('Parcours : détails repliables au clavier', async ({ page }) => {
 
 test('Parcours EN : libellés traduits', async ({ page }) => {
   await page.goto('/en')
-  await expect(page.locator('#journey h2')).toHaveText('Experience & education')
+  await expect(page.locator('#journey h2')).toHaveText('My journey')
   await expect(page.getByTestId('timeline-item').first()).toContainText(
     'Full Stack & DevOps Developer',
   )
