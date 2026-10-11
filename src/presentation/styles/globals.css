@@ -164,8 +164,13 @@
     opacity: 0;
     transform: translateY(16px);
   }
+  /* Entrée par la droite, en fondu (cartes du parcours). */
+  .js .reveal[data-reveal='right'] {
+    transform: translateX(4rem);
+  }
   @media (prefers-reduced-motion: reduce) {
-    .js .reveal {
+    .js .reveal,
+    .js .reveal[data-reveal='right'] {
       opacity: 1;
       transform: none;
     }

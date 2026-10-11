@@ -15,7 +15,7 @@ export async function Journey({ experiences }: { experiences: readonly Experienc
     stacks: t('stacks'),
   }
   return (
-    <Section id="journey" labelledBy="journey-title">
+    <Section id="journey" labelledBy="journey-title" className="overflow-x-clip">
       <SectionHeading eyebrow={t('eyebrow')} title={t('title')} id="journey-title" />
       <ol className="space-y-0">
         {experiences.map((experience, index) => (

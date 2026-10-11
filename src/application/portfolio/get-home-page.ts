@@ -1,4 +1,4 @@
-import { computeCareerStats, type Locale } from '@/domain'
+import { computeCareerStats, sortByMostRecent, type Locale } from '@/domain'
 import type { Clock } from '../ports/clock'
 import type { PortfolioRepository } from '../ports/portfolio-repository'
 import type { HomePage } from './home-page'
@@ -24,6 +24,14 @@ export class GetHomePage {
       stacksCount: stacks.length,
       now: new Date(this.clock.now()),
     })
-    return { site, cinematic, services, stacks, projects, experiences, stats }
+    return {
+      site,
+      cinematic,
+      services,
+      stacks,
+      projects,
+      experiences: sortByMostRecent(experiences),
+      stats,
+    }
   }
 }

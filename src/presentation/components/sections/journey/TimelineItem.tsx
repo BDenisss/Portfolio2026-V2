@@ -61,6 +61,7 @@ export function TimelineItem({ experience, locale, labels, isLatest }: TimelineI
   return (
     <Reveal
       as="li"
+      from="right"
       className={cn(
         'relative pb-8 pl-10 last:pb-0 lg:pl-[12.5rem]',
         // Rail : un segment par item, prolongé jusqu'au point de l'item suivant (-bottom-7 = son top-7), sans coupure.

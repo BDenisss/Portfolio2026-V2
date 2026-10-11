@@ -21,6 +21,7 @@ export function RevealController() {
             onEnter: (batch) =>
               gsap.to(batch, {
                 opacity: 1,
+                x: 0,
                 y: 0,
                 duration: REVEAL_SECONDS,
                 ease: 'power3.out',
