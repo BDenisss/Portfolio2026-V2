@@ -129,6 +129,35 @@
     background: none;
     box-shadow: var(--lg-bevel);
   }
+  /*
+   * Clic liquide des petits verres (glass-ripple.ts) : une onde part du point touché, sous le texte (z-index -1,
+   * au-dessus du flou) ; son anneau de lumière se voit partout, sa réfraction seulement sous Chromium.
+   */
+  .glass-ripple {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    border-radius: inherit;
+    pointer-events: none;
+  }
+  .glass-ripple__wave,
+  .glass-ripple__ring {
+    position: absolute;
+    border-radius: 50%;
+  }
+  /* Crête lumineuse, puis un creux légèrement ombré juste derrière : l'anneau se détache aussi sur un fond clair. */
+  .glass-ripple__ring {
+    box-shadow:
+      inset 0 0 0 2px rgb(255 255 255 / 0.95),
+      inset 0 0 0 5px rgb(70 50 140 / 0.14),
+      inset 0 0 14px rgb(255 255 255 / 0.6),
+      0 0 10px rgb(255 255 255 / 0.45);
+  }
+  html[data-refract='on'] .glass-ripple__wave {
+    backdrop-filter: url(#lg-ripple);
+  }
+
   .glass[data-interactive] {
     cursor: pointer;
   }

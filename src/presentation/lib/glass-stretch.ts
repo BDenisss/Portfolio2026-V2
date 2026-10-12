@@ -11,12 +11,9 @@ export type GlassStretch = {
 const MAX_SHIFT_PX = 6
 const STRETCH = 0.09
 const SQUASH = 0.03
-const PRESSED_SCALE = 0.95
 const CENTER = 0.5
 
 export const RESTING: GlassStretch = { x: 0, y: 0, scaleX: 1, scaleY: 1 }
-/** Appui : le verre s'écrase un peu sur place. */
-export const PRESSED: GlassStretch = { x: 0, y: 0, scaleX: PRESSED_SCALE, scaleY: PRESSED_SCALE }
 
 const clamp01 = (value: number): number => Math.min(Math.max(value, 0), 1)
 

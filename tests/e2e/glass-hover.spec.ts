@@ -34,16 +34,22 @@ test('verre vivant : les petits éléments s’étirent vers la souris, les gran
   await expect.poll(() => stateOf(stat)).toEqual({ lit: false, transform: 'none' })
 })
 
-test('verre vivant : un petit bouton s’écrase à l’appui', async ({ page }) => {
+test('clic liquide : une onde part du point touché et le petit bouton rebondit', async ({
+  page,
+}) => {
   await page.goto('/fr')
   await page.waitForLoadState('networkidle')
   const cv = page.getByRole('link', { name: 'Télécharger mon CV' })
-  await pointAt(page, cv, 0.5, 0.5)
+  const scaleOf = (): Promise<number> =>
+    cv.evaluate((element) => Number(getComputedStyle(element).scale))
+  await pointAt(page, cv, 0.3, 0.5)
   await page.mouse.down()
-  await expect
-    .poll(async () => (await stateOf(cv)).transform)
-    .toBe('matrix(0.95, 0, 0, 0.95, 0, 0)')
+  await expect(cv.locator('.glass-ripple')).toHaveCount(1)
+  await expect.poll(scaleOf).toBeLessThan(1)
   await page.mouse.up()
+  // L'onde s'éteint, sa couche disparaît et le bouton retrouve sa taille.
+  await expect(cv.locator('.glass-ripple')).toHaveCount(0, { timeout: 5_000 })
+  expect(await cv.evaluate((element) => element.style.scale)).toBe('')
 })
 
 test('verre vivant sous reduced-motion : ni reflet ni étirement', async ({ browser }) => {

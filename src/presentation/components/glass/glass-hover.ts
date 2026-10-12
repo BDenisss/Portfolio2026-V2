@@ -1,17 +1,16 @@
+import { type GlassStretch, RESTING, stretchFrom } from '@/presentation/lib/glass-stretch'
 import { gsap } from '@/presentation/lib/gsap'
-import { type GlassStretch, PRESSED, RESTING, stretchFrom } from '@/presentation/lib/glass-stretch'
+import { createRippleController } from './glass-ripple'
 
 const GLASS = '.glass'
 const PERCENT = 100
 const FOLLOW = { duration: 0.35, ease: 'power3.out' }
-const PRESS = { duration: 0.15, ease: 'power2.out' }
 // Retour élastique : le verre dépasse un peu sa forme de repos puis s'y pose, comme une goutte.
 const SETTLE = { duration: 0.9, ease: 'elastic.out(1, 0.45)' }
 
 type Pointer = { readonly x: number; readonly y: number }
 
 const isStretchable = (glass: HTMLElement): boolean => glass.dataset.stretch !== undefined
-const isPressed = (glass: HTMLElement): boolean => glass.dataset.glassPressed !== undefined
 
 /** Les verres sous un point, du plus proche au plus lointain : un bouton posé dans une carte, les deux brillent. */
 function glassChainAt({ x, y }: Pointer): HTMLElement[] {
@@ -33,7 +32,7 @@ function shape(glass: HTMLElement, state: GlassStretch, timing: gsap.TweenVars):
   gsap.to(glass, { ...state, ...timing, overwrite: 'auto' })
 }
 
-/** Retour au repos ; une fois posé, le verre rend la main au CSS (survol, appui sans souris). */
+/** Retour au repos ; une fois posé, le verre rend la main au CSS. */
 function settle(glass: HTMLElement): void {
   shape(glass, RESTING, { ...SETTLE, clearProps: 'transform' })
 }
@@ -44,12 +43,12 @@ function light(glass: HTMLElement, pointer: Pointer): void {
   glass.style.setProperty('--glass-mx', `${(ratio.x * PERCENT).toFixed(1)}%`)
   glass.style.setProperty('--glass-my', `${(ratio.y * PERCENT).toFixed(1)}%`)
   glass.dataset.glassLit = ''
-  if (isStretchable(glass) && !isPressed(glass)) shape(glass, stretchFrom(ratio.x, ratio.y), FOLLOW)
+  if (isStretchable(glass)) shape(glass, stretchFrom(ratio.x, ratio.y), FOLLOW)
 }
 
 function unlight(glass: HTMLElement): void {
   delete glass.dataset.glassLit
-  if (isStretchable(glass) && !isPressed(glass)) settle(glass)
+  if (isStretchable(glass)) settle(glass)
 }
 
 /** Écouteur passif ; renvoie de quoi le retirer. */
@@ -63,29 +62,10 @@ function listen<E extends Event>(
   return () => target.removeEventListener(type, listener)
 }
 
-/** Appui sur un petit verre : il s'écrase sur place. */
-function press(event: PointerEvent): void {
-  const glass = (event.target as Element | null)?.closest<HTMLElement>(`${GLASS}[data-stretch]`)
-  if (!glass) return
-  glass.dataset.glassPressed = ''
-  shape(glass, PRESSED, PRESS)
-}
-
-/** Relâchement : rebond vers l'étirement sous la souris si elle est encore dessus, sinon vers le repos. */
-function release(pointer: Pointer | null, lit: ReadonlySet<HTMLElement>): void {
-  for (const glass of document.querySelectorAll<HTMLElement>('[data-glass-pressed]')) {
-    delete glass.dataset.glassPressed
-    if (pointer && lit.has(glass)) {
-      const ratio = ratioIn(glass, pointer)
-      shape(glass, stretchFrom(ratio.x, ratio.y), SETTLE)
-    } else settle(glass)
-  }
-}
-
 /**
  * Verre vivant au pointeur : un reflet suit la souris sur toutes les surfaces en verre, et les petits éléments
- * (`data-stretch`) s'étirent vers elle, s'écrasent à l'appui et reviennent avec un rebond. Renvoie le nettoyage.
- * `hover` : souris ou stylet (au doigt, il n'y a que l'écrasement à l'appui).
+ * (`data-stretch`) s'étirent vers elle ; au clic, ils rebondissent et une onde part du point touché (glass-ripple).
+ * Renvoie le nettoyage. `hover` : souris ou stylet (au doigt, il ne reste que l'onde au toucher).
  */
 export function startGlassHover({ hover }: { hover: boolean }): () => void {
   let lit = new Set<HTMLElement>()
@@ -106,12 +86,15 @@ export function startGlassHover({ hover }: { hover: boolean }): () => void {
     pointer = next
     schedule()
   }
-  const onRelease = (): void => release(pointer, lit)
+  const ripples = createRippleController()
 
   const stops = [
-    listen(document, 'pointerdown', press),
-    listen(document, 'pointerup', onRelease),
-    listen(document, 'pointercancel', onRelease),
+    listen<PointerEvent>(document, 'pointerdown', (event) => {
+      const glass = (event.target as Element | null)?.closest<HTMLElement>(`${GLASS}[data-stretch]`)
+      if (glass) ripples.press(glass, event.clientX, event.clientY)
+    }),
+    listen(document, 'pointerup', ripples.release),
+    listen(document, 'pointercancel', ripples.release),
     ...(hover
       ? [
           listen<PointerEvent>(document, 'pointermove', (event) => {
@@ -125,6 +108,7 @@ export function startGlassHover({ hover }: { hover: boolean }): () => void {
   return () => {
     cancelAnimationFrame(frame)
     for (const stop of stops) stop()
+    ripples.stop()
     for (const glass of lit) unlight(glass)
   }
 }

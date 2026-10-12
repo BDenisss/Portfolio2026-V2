@@ -20,6 +20,26 @@ export function GlassFilters() {
             yChannelSelector="G"
           />
         </filter>
+        {/* Onde du clic liquide (glass-ripple.ts) : la carte est peinte au premier clic, l'intensité suit l'onde. */}
+        <filter id="lg-ripple" primitiveUnits="objectBoundingBox" colorInterpolationFilters="sRGB">
+          <feImage
+            id="lg-ripple-map"
+            result="map"
+            width="100%"
+            height="100%"
+            x="0"
+            y="0"
+            preserveAspectRatio="none"
+          />
+          <feDisplacementMap
+            id="lg-ripple-displacement"
+            in="SourceGraphic"
+            in2="map"
+            scale="0"
+            xChannelSelector="R"
+            yChannelSelector="G"
+          />
+        </filter>
       </defs>
     </svg>
   )

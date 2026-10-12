@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { PRESSED, RESTING, stretchFrom } from '@/presentation/lib/glass-stretch'
+import { RESTING, stretchFrom } from '@/presentation/lib/glass-stretch'
 
 describe('étirement du verre', () => {
   it('au centre, le verre ne bouge pas', () => {
@@ -28,12 +28,5 @@ describe('étirement du verre', () => {
 
   it('reste borné quand le pointeur sort de l’élément', () => {
     expect(stretchFrom(3, -2)).toEqual(stretchFrom(1, 0))
-  })
-
-  it('à l’appui, le verre s’écrase sur place', () => {
-    expect(PRESSED.x).toBe(0)
-    expect(PRESSED.y).toBe(0)
-    expect(PRESSED.scaleX).toBeLessThan(1)
-    expect(PRESSED.scaleY).toBe(PRESSED.scaleX)
   })
 })
