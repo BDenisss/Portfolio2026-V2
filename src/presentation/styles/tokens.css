@@ -14,9 +14,7 @@
   --tint-pink: #f3a6d0;
   --danger: #c0263a;
   --success: #0f7b5f;
-  /* Repli du verre sans transparence (préférence « transparence réduite ») : la teinte du verre liquide posée sur
-     le fond de page, en opaque, pour garder la même couleur que le verre au lieu d'un blanc. */
-  --opaque-glass: color-mix(in srgb, var(--lg-tint) var(--lg-tint-amount), var(--bg));
+  --opaque-glass: #f9f8fc;
 
   --glass-fill: rgb(255 255 255 / 0.46);
   --glass-fill-strong: rgb(255 255 255 / 0.66);
