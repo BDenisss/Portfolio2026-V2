@@ -28,7 +28,7 @@ type ActionProps = CommonProps & { href?: undefined } & Omit<
 export type ButtonProps = LinkProps | ActionProps
 
 const BASE =
-  'inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-full px-5 font-medium transition-[transform,box-shadow] duration-200 hover:-translate-y-px'
+  'inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-full px-5 font-medium transition-[translate,scale,box-shadow] duration-200 hover:-translate-y-px'
 const SIZES = { md: '', lg: 'min-h-12 px-7 text-base' } as const
 const PRIMARY = 'bg-[var(--ink)] text-white hover:shadow-[0_10px_30px_rgb(11_11_20/0.25)]'
 
@@ -84,7 +84,9 @@ export function Button(props: ButtonProps) {
   const { variant = 'primary', size = 'md', magnetic = false, className } = props
   const classes = cn(BASE, SIZES[size], variant === 'primary' && PRIMARY, className)
   const glass =
-    variant === 'secondary' ? glassAttributes('pill', { interactive: true }, classes) : null
+    variant === 'secondary'
+      ? glassAttributes('pill', { interactive: true, stretch: true }, classes)
+      : null
   const element = isLinkProps(props)
     ? renderLink(props, { classes, glass })
     : renderAction(props, { classes, glass })

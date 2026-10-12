@@ -30,6 +30,7 @@ export function StackTile({ stack }: { stack: Stack }) {
   return (
     <Glass
       variant="card"
+      stretch
       data-testid="stack-tile"
       className="flex min-h-24 flex-col items-center justify-center gap-2 p-3 text-center"
     >

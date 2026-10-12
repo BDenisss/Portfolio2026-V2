@@ -24,9 +24,14 @@ describe('<Glass>', () => {
     expect(el).toHaveAttribute('data-refract', 'true')
     expect(el).toHaveAttribute('href', '#x')
   })
-  it("n'ajoute pas data-refract/data-interactive par défaut", () => {
+  it("n'ajoute pas data-refract/data-interactive/data-stretch par défaut", () => {
     render(<Glass data-testid="g" />)
     expect(screen.getByTestId('g')).not.toHaveAttribute('data-refract')
     expect(screen.getByTestId('g')).not.toHaveAttribute('data-interactive')
+    expect(screen.getByTestId('g')).not.toHaveAttribute('data-stretch')
+  })
+  it('marque les petits verres qui s’étirent au pointeur', () => {
+    render(<Glass stretch data-testid="g" />)
+    expect(screen.getByTestId('g')).toHaveAttribute('data-stretch', 'true')
   })
 })

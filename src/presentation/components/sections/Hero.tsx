@@ -16,6 +16,7 @@ function HeroChip({ chip, position }: { chip: LabeledValue; position: string }) 
   return (
     <Glass
       variant="card"
+      stretch
       data-testid="hero-chip"
       className={`absolute z-10 flex flex-col px-4 py-3 ${position}`}
     >

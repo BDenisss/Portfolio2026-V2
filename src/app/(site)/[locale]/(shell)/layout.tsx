@@ -4,6 +4,7 @@ import { setRequestLocale } from 'next-intl/server'
 import { getPortfolioUseCases } from '@/composition'
 import { isLocale } from '@/domain'
 import { PageBackdrop } from '@/presentation/components/decor/PageBackdrop'
+import { GlassHover } from '@/presentation/components/glass/GlassHover'
 import { Dock } from '@/presentation/components/ui/Dock'
 import { Footer } from '@/presentation/components/ui/Footer'
 import { Nav } from '@/presentation/components/ui/Nav'
@@ -28,6 +29,7 @@ export default async function ShellLayout({
       <PageBackdrop />
       <SmoothScroll />
       <RevealController />
+      <GlassHover />
       <Nav name={site.name} jobTitle={site.jobTitle} />
       <main id="main" tabIndex={-1}>
         {children}

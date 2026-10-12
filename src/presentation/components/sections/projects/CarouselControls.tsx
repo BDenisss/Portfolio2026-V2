@@ -5,7 +5,7 @@ import { UiIcon } from '@/presentation/components/ui/Icon'
 import { cn } from '@/presentation/lib/cn'
 
 const arrowClasses =
-  'glass grid size-11 cursor-pointer place-items-center rounded-full text-[var(--ink)] transition-transform hover:-translate-y-px'
+  'glass grid size-11 cursor-pointer place-items-center rounded-full text-[var(--ink)] transition-[translate] hover:-translate-y-px'
 
 type CarouselControlsProps = {
   projects: readonly ProjectSummary[]
@@ -26,6 +26,7 @@ export function CarouselControls(props: CarouselControlsProps) {
       <button
         type="button"
         className={arrowClasses}
+        data-stretch
         aria-label={t('previous')}
         onClick={onPrevious}
       >
@@ -50,7 +51,13 @@ export function CarouselControls(props: CarouselControlsProps) {
           </button>
         ))}
       </div>
-      <button type="button" className={arrowClasses} aria-label={t('next')} onClick={onNext}>
+      <button
+        type="button"
+        className={arrowClasses}
+        data-stretch
+        aria-label={t('next')}
+        onClick={onNext}
+      >
         <UiIcon name="arrow-right" className="size-5" />
       </button>
       {!reduced && (

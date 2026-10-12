@@ -3,18 +3,20 @@ import { cn } from '@/presentation/lib/cn'
 
 export type GlassVariant = 'surface' | 'card' | 'pill' | 'dock'
 
-type GlassOptions = { interactive?: boolean; refract?: boolean }
+// `stretch` : petit élément qui s'étire vers le pointeur (voir glass-hover.ts) ; les grandes surfaces n'ont que le reflet.
+type GlassOptions = { interactive?: boolean; refract?: boolean; stretch?: boolean }
 
 /** Attributs du matériau verre : point de vérité partagé par <Glass> et les éléments qui le portent directement. */
 export function glassAttributes(
   variant: GlassVariant,
-  { interactive = false, refract = false }: GlassOptions = {},
+  { interactive = false, refract = false, stretch = false }: GlassOptions = {},
   className?: string,
 ) {
   return {
     'data-glass': variant,
     'data-refract': refract || undefined,
     'data-interactive': interactive || undefined,
+    'data-stretch': stretch || undefined,
     className: cn('glass', `glass--${variant}`, className),
   }
 }
@@ -30,9 +32,12 @@ export function Glass<T extends ElementType = 'div'>({
   variant = 'card',
   interactive = false,
   refract = false,
+  stretch = false,
   className,
   ...rest
 }: GlassProps<T>) {
   const Tag = (as ?? 'div') as unknown as ComponentType<Record<string, unknown>>
-  return <Tag {...glassAttributes(variant, { interactive, refract }, className)} {...rest} />
+  return (
+    <Tag {...glassAttributes(variant, { interactive, refract, stretch }, className)} {...rest} />
+  )
 }

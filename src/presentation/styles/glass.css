@@ -8,6 +8,13 @@
  * continue de voir la page derrière lui.
  * Couche `components` : les utilitaires Tailwind (couche `utilities`) doivent pouvoir surcharger le verre.
  */
+/* Intensité du reflet qui suit le pointeur (0 → 1) : enregistrée pour pouvoir s'allumer et s'éteindre en fondu. */
+@property --glass-shine {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 0;
+}
+
 @layer components {
   :root {
     /* Biseau d'une grande surface (pilule de nav, carte). */
@@ -57,8 +64,10 @@
     isolation: isolate;
     background: transparent;
     border-radius: var(--radius-card);
+    /* Propriétés `translate` / `scale` (et non `transform`) : GSAP garde `transform` pour l'étirement au pointeur. */
     transition:
-      transform 220ms var(--ease-glass),
+      translate 220ms var(--ease-glass),
+      scale 220ms var(--ease-glass),
       box-shadow 220ms var(--ease-glass);
   }
   .glass::before,
@@ -78,9 +87,29 @@
     z-index: -1;
     background-color: color-mix(in srgb, var(--lg-tint) var(--lg-tint-amount), transparent);
     box-shadow: var(--lg-bevel), var(--lg-drop);
+    /* Reflet : une tache de lumière posée sous le pointeur (glass-hover.ts), éteinte au repos. */
+    background-image: radial-gradient(
+      circle var(--glass-shine-radius) at var(--glass-mx, 50%) var(--glass-my, 50%),
+      rgb(255 255 255 / calc(var(--glass-shine) * 0.55)),
+      transparent
+    );
     transition:
       background-color 400ms var(--lg-ease),
-      box-shadow 400ms var(--lg-ease);
+      box-shadow 400ms var(--lg-ease),
+      --glass-shine 350ms ease;
+  }
+  .glass {
+    --glass-shine-radius: 15rem;
+  }
+  .glass--pill,
+  .glass--dock {
+    --glass-shine-radius: 9rem;
+  }
+  .glass[data-stretch] {
+    --glass-shine-radius: 7rem;
+  }
+  .glass[data-glass-lit]::after {
+    --glass-shine: 1;
   }
   .glass--surface {
     border-radius: var(--radius-frame);
@@ -104,11 +133,11 @@
     cursor: pointer;
   }
   .glass[data-interactive]:hover {
-    transform: translateY(-2px);
+    translate: 0 -2px;
     box-shadow: 0 14px 40px rgb(0 0 0 / 0.1);
   }
   .glass[data-interactive]:active {
-    transform: scale(0.985);
+    scale: 0.985;
   }
 
   /*
