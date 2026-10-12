@@ -74,12 +74,15 @@ export function RevealController() {
   useGSAP(
     () => {
       const media = gsap.matchMedia()
-      media.add('(prefers-reduced-motion: no-preference)', () => {
+      media.add('(prefers-reduced-motion: no-preference)', (context) => {
         const items = gsap.utils.toArray<HTMLElement>('.reveal')
+        let stopSplitText = (): void => undefined
         try {
           revealOnEnter(items.filter((item) => item.dataset.reveal !== 'right'))
           revealFromRightOnScroll(items.filter((item) => item.dataset.reveal === 'right'))
-          revealSplitText(gsap.utils.toArray<HTMLElement>('[data-split]'))
+          stopSplitText = revealSplitText(gsap.utils.toArray<HTMLElement>('[data-split]'), (work) =>
+            context.add(work),
+          )
         } catch {
           // échec GSAP : le contenu doit rester visible
           gsap.set(items, { clearProps: 'all' })
@@ -87,6 +90,7 @@ export function RevealController() {
             .querySelectorAll('[data-split]')
             .forEach((element) => element.classList.add('split-ready'))
         }
+        return () => stopSplitText()
       })
       return () => media.revert()
     },

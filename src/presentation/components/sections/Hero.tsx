@@ -57,7 +57,7 @@ export function Hero({ site, cinematic }: HeroProps) {
             {/* Élément du LCP : apparition mot par mot, masquée seulement le temps que GSAP découpe le texte (voir globals.css). */}
             <p
               data-split="words"
-              data-split-delay="0.55"
+              data-split-delay="0.8"
               className="max-w-prose text-lg text-[var(--ink-2)]"
             >
               {site.tagline}

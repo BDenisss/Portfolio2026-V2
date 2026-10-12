@@ -10,6 +10,8 @@ import { usePrefersReducedMotion } from '@/presentation/lib/use-prefers-reduced-
 const ROTATION_INTERVAL_MS = 3200
 // Durée de l'animation de sortie de l'ancien titre (voir `.hero-title-out`).
 const OUTGOING_MS = 350
+// Entrée du premier titre : juste après « Denis Bucspun » (voir Hero.tsx).
+const INTRO_DELAY_S = '0.5'
 const GRADIENT_TEXT =
   'inline-block bg-linear-to-r from-[var(--accent-strong)] to-[var(--accent)] bg-clip-text text-transparent'
 
@@ -79,6 +81,19 @@ function titleAnimation(phase: ChoreographyPhase, rotations: number): string | u
   return phase === 'idle' && rotations > 0 ? 'hero-title-in' : undefined
 }
 
+/**
+ * Clé du titre affiché : un nouvel élément (donc une nouvelle animation) à chaque rotation et à la transformation,
+ * mais pas au passage idle → armed, sinon le premier titre serait recréé en pleine animation d'entrée.
+ */
+const titleKey = (phase: ChoreographyPhase, rotations: number): string =>
+  phase === 'swapped' ? 'swapped' : `title-${rotations}`
+
+/** Seul le premier titre, celui du chargement, monte mot par mot derrière un masque (comme le nom). */
+const introSplit = (phase: ChoreographyPhase, rotations: number) =>
+  phase !== 'swapped' && rotations === 0
+    ? { 'data-split': 'mask', 'data-split-delay': INTRO_DELAY_S }
+    : {}
+
 /** Garde l'ancien titre à l'écran le temps de sa sortie, une fois la transformation déclenchée. */
 function useOutgoingTitle(swapped: boolean, title: string | null): string | null {
   const [gone, setGone] = useState(false)
@@ -118,8 +133,9 @@ export function RotatingTitle({ titles, label }: RotatingTitleProps) {
       {/* Boîte à la largeur du texte : l'ancien titre et les étincelles se positionnent par rapport à lui. */}
       <span className="relative inline-block">
         <span
-          key={phase === 'idle' ? rotations : phase}
+          key={titleKey(phase, rotations)}
           aria-hidden="true"
+          {...introSplit(phase, rotations)}
           className={cn(GRADIENT_TEXT, titleAnimation(phase, rotations))}
         >
           {titles[titleIndex(phase, titles.length, rotations)]}
