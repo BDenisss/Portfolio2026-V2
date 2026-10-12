@@ -57,6 +57,8 @@ test.describe('hero', () => {
 
   test('propose le téléchargement des deux CV dans un menu accessible', async ({ page }) => {
     await page.goto('/fr')
+    // Un clic arrivé avant l'hydratation de React serait perdu : on attend que la page ait fini de charger.
+    await page.waitForLoadState('networkidle')
     const trigger = page.getByRole('button', { name: 'Télécharger mon CV' })
     await expect(trigger).toHaveAttribute('aria-expanded', 'false')
     await trigger.click()
