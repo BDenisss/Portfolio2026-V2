@@ -25,6 +25,8 @@ type Ripple = {
   seconds: number
   bump: Bump
   pressed: boolean
+  /** Petits verres seulement : une grande carte qui s'enfoncerait de 4 % bougerait de plusieurs dizaines de px. */
+  readonly bounce: boolean
 }
 
 /** Peint une seule fois la carte de l'onde dans le filtre (calculée ici plutôt que stockée en image). */
@@ -44,14 +46,14 @@ const span = (className: string): HTMLElement => {
 }
 
 /** Couche de l'onde, glissée sous le texte du verre le temps de l'animation, puis retirée. */
-function createRipple(glass: HTMLElement): Ripple {
+function createRipple(glass: HTMLElement, bounce: boolean): Ripple {
   const layer = span('glass-ripple')
   const wave = span('glass-ripple__wave')
   const ring = span('glass-ripple__ring')
   layer.setAttribute('aria-hidden', 'true')
   layer.append(wave, ring)
   glass.append(layer)
-  return { layer, wave, ring, x: 0, y: 0, seconds: 0, bump: BUMP_REST, pressed: false }
+  return { layer, wave, ring, x: 0, y: 0, seconds: 0, bump: BUMP_REST, pressed: false, bounce }
 }
 
 function draw(glass: HTMLElement, ripple: Ripple): number {
@@ -62,7 +64,7 @@ function draw(glass: HTMLElement, ripple: Ripple): number {
     circle.style.top = `${ripple.y - diameter / 2}px`
   }
   ripple.ring.style.opacity = ringOpacity.toFixed(3)
-  glass.style.scale = (1 + ripple.bump.offset).toFixed(4)
+  if (ripple.bounce) glass.style.scale = (1 + ripple.bump.offset).toFixed(4)
   return refraction
 }
 
@@ -93,7 +95,7 @@ function remove(glass: HTMLElement, ripple: Ripple): void {
 }
 
 export type RippleController = {
-  press: (glass: HTMLElement, clientX: number, clientY: number) => void
+  press: (glass: HTMLElement, clientX: number, clientY: number, bounce: boolean) => void
   release: () => void
   stop: () => void
 }
@@ -124,9 +126,9 @@ export function createRippleController(): RippleController {
   }
 
   return {
-    press(glass, clientX, clientY) {
+    press(glass, clientX, clientY, bounce) {
       paintMap()
-      const ripple = ripples.get(glass) ?? createRipple(glass)
+      const ripple = ripples.get(glass) ?? createRipple(glass, bounce)
       strike(glass, ripple, clientX, clientY)
       ripples.set(glass, ripple)
       if (!frame) {

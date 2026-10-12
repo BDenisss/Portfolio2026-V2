@@ -130,7 +130,7 @@
     box-shadow: var(--lg-bevel);
   }
   /*
-   * Clic liquide des petits verres (glass-ripple.ts) : une onde part du point touché, sous le texte (z-index -1,
+   * Clic liquide (glass-ripple.ts) : une onde part du point touché, sous le texte (z-index -1,
    * au-dessus du flou) ; son anneau de lumière se voit partout, sa réfraction seulement sous Chromium.
    */
   .glass-ripple {

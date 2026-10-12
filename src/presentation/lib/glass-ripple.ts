@@ -1,6 +1,6 @@
 /**
- * Clic liquide des petits verres (démo « C · Onde », réglée à raideur ×2 et amortissement ×1,5) : au clic, le verre
- * encaisse le choc sur un ressort amorti, et une onde part du point touché en ralentissant et en s'éteignant.
+ * Clic liquide du verre (démo « C · Onde », réglée à raideur ×2 et amortissement ×1,5) : au clic, une onde part du
+ * point touché en ralentissant et en s'éteignant ; les petits verres encaissent en plus le choc sur un ressort amorti.
  */
 
 /** Pas de temps fixe de la simulation : plusieurs sous-pas par image, pour un ressort stable. */
@@ -33,8 +33,10 @@ export const isBumpSettled = (bump: Bump, pressed: boolean): boolean =>
   !pressed && Math.abs(bump.offset) < SETTLED_OFFSET && Math.abs(bump.velocity) < SETTLED_VELOCITY
 
 // Onde : son diamètre tend vers 2,6 fois la largeur du verre (r = R·(1 − e^(−t/τ)), elle ralentit en s'éloignant),
-// sa réfraction et son anneau de lumière s'éteignent de façon exponentielle.
+// sa réfraction et son anneau de lumière s'éteignent de façon exponentielle. La largeur prise en compte plafonne
+// à 240 px : sur une grande carte, l'onde garde la vitesse et la portée qu'elle a sur un bouton.
 const WAVE_REACH = 2.6
+const WAVE_MAX_WIDTH = 240
 const WAVE_SPREAD_SECONDS = 0.3
 const WAVE_FADE_SECONDS = 0.42
 const RING_FADE_SECONDS = 0.38
@@ -51,7 +53,8 @@ export type Wave = {
 
 export function waveAt(seconds: number, width: number): Wave {
   return {
-    diameter: WAVE_REACH * width * (1 - Math.exp(-seconds / WAVE_SPREAD_SECONDS)),
+    diameter:
+      WAVE_REACH * Math.min(width, WAVE_MAX_WIDTH) * (1 - Math.exp(-seconds / WAVE_SPREAD_SECONDS)),
     refraction: MAX_REFRACTION * Math.exp(-seconds / WAVE_FADE_SECONDS),
     ringOpacity: Math.exp(-seconds / RING_FADE_SECONDS),
   }

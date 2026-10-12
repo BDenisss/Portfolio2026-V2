@@ -59,6 +59,11 @@ describe('clic liquide : onde', () => {
     expect(waveAt(10, 100).diameter).toBeCloseTo(260)
   })
 
+  it('sur une grande surface, garde la portée qu’elle a sur un bouton (largeur plafonnée à 240 px)', () => {
+    expect(waveAt(10, 900).diameter).toBeCloseTo(2.6 * 240)
+    expect(waveAt(0.2, 900).diameter).toBeCloseTo(waveAt(0.2, 240).diameter)
+  })
+
   it('s’éteint : réfraction et lumière presque nulles quand on la retire', () => {
     expect(waveAt(0, 100).ringOpacity).toBe(1)
     const end = waveAt(WAVE_SECONDS, 100)

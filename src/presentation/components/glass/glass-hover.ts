@@ -11,6 +11,16 @@ const SETTLE = { duration: 0.9, ease: 'elastic.out(1, 0.45)' }
 type Pointer = { readonly x: number; readonly y: number }
 
 const isStretchable = (glass: HTMLElement): boolean => glass.dataset.stretch !== undefined
+// Le simple biseau posé sur un média (cadre de l'avatar) n'est pas une surface qu'on touche.
+const TOUCHABLE_GLASS = `${GLASS}:not(.glass--rim)`
+// Un clic pour écrire dans un champ ne doit pas faire onduler le formulaire autour.
+const TEXT_FIELD = 'input, textarea, select, [contenteditable]'
+
+/** Le verre touché (le plus proche du point de clic), sauf quand on clique dans un champ de saisie. */
+function touchedGlass(target: EventTarget | null): HTMLElement | null {
+  if (!(target instanceof Element) || target.closest(TEXT_FIELD)) return null
+  return target.closest<HTMLElement>(TOUCHABLE_GLASS)
+}
 
 /** Les verres sous un point, du plus proche au plus lointain : un bouton posé dans une carte, les deux brillent. */
 function glassChainAt({ x, y }: Pointer): HTMLElement[] {
@@ -64,7 +74,8 @@ function listen<E extends Event>(
 
 /**
  * Verre vivant au pointeur : un reflet suit la souris sur toutes les surfaces en verre, et les petits éléments
- * (`data-stretch`) s'étirent vers elle ; au clic, ils rebondissent et une onde part du point touché (glass-ripple).
+ * (`data-stretch`) s'étirent vers elle. Au clic, une onde part du point touché sur tout verre, et les petits
+ * rebondissent en plus (glass-ripple).
  * Renvoie le nettoyage. `hover` : souris ou stylet (au doigt, il ne reste que l'onde au toucher).
  */
 export function startGlassHover({ hover }: { hover: boolean }): () => void {
@@ -90,8 +101,8 @@ export function startGlassHover({ hover }: { hover: boolean }): () => void {
 
   const stops = [
     listen<PointerEvent>(document, 'pointerdown', (event) => {
-      const glass = (event.target as Element | null)?.closest<HTMLElement>(`${GLASS}[data-stretch]`)
-      if (glass) ripples.press(glass, event.clientX, event.clientY)
+      const glass = touchedGlass(event.target)
+      if (glass) ripples.press(glass, event.clientX, event.clientY, isStretchable(glass))
     }),
     listen(document, 'pointerup', ripples.release),
     listen(document, 'pointercancel', ripples.release),

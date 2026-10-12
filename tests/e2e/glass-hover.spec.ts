@@ -52,6 +52,36 @@ test('clic liquide : une onde part du point touché et le petit bouton rebondit'
   expect(await cv.evaluate((element) => element.style.scale)).toBe('')
 })
 
+test('clic liquide sur une grande carte : l’onde, sans rebond', async ({ page }) => {
+  await page.goto('/fr')
+  await page.waitForLoadState('networkidle')
+  const card = page.getByTestId('timeline-item').first()
+  // La carte arrive par la droite au fil du scroll : on la monte en haut de l'écran et on attend qu'elle soit posée.
+  await card.evaluate((element) =>
+    window.scrollTo(0, element.getBoundingClientRect().top + scrollY - 120),
+  )
+  await expect
+    .poll(() => card.evaluate((element) => element.getBoundingClientRect().right <= innerWidth))
+    .toBe(true)
+  await pointAt(page, card, 0.8, 0.3)
+  await page.mouse.down()
+  await expect(card.locator('.glass-ripple')).toHaveCount(1)
+  await page.waitForTimeout(150)
+  expect(await card.evaluate((element) => element.style.scale)).toBe('')
+  await page.mouse.up()
+  await expect(card.locator('.glass-ripple')).toHaveCount(0, { timeout: 5_000 })
+})
+
+test('clic liquide : écrire dans un champ ne fait pas onduler le formulaire', async ({ page }) => {
+  await page.goto('/fr')
+  await page.waitForLoadState('networkidle')
+  const field = page.locator('#contact textarea').first()
+  await field.scrollIntoViewIfNeeded()
+  await field.click()
+  await page.waitForTimeout(150)
+  await expect(page.locator('#contact .glass-ripple')).toHaveCount(0)
+})
+
 test('verre vivant sous reduced-motion : ni reflet ni étirement', async ({ browser }) => {
   const context = await browser.newContext({ reducedMotion: 'reduce' })
   const page = await context.newPage()
