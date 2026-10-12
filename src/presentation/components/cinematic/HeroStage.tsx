@@ -30,7 +30,7 @@ export function HeroStage({ cinematic, avatarAlt }: HeroStageProps) {
   const onCue = useVideoChoreography(stage.mode)
   const labelled = avatarAlt !== ''
   // Trois niveaux : la scène donne la perspective et la position du pointeur, la carte s'incline,
-  // le cadre (que GSAP réduit au scroll) porte les médias et les reflets, découpés par ses coins.
+  // le cadre porte les médias et les reflets, découpés par ses coins.
   return (
     <div ref={scene} className="holo-scene">
       <div ref={card} className="holo">

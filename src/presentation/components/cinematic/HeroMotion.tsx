@@ -5,7 +5,6 @@ import { gsap, useGSAP } from '@/presentation/lib/gsap'
 const DESKTOP_MOTION = '(min-width: 768px) and (prefers-reduced-motion: no-preference)'
 const MOBILE_MOTION = '(max-width: 767px) and (prefers-reduced-motion: no-preference)'
 const PIN_SCROLL_DISTANCE = '+=120%'
-const FRAME_END_SCALE = 0.9
 const CHIP_DESKTOP_LIFT = -30
 const CHIP_MOBILE_LIFT = -20
 const COPY_LIFT = -6
@@ -14,7 +13,7 @@ const SCRUB_SMOOTHING = 1
 
 type HeroMotionProps = { children: ReactNode; className?: string }
 
-/** Scroll du hero : pin + transition scrubée sur desktop uniquement, simple parallax du décor sur mobile. */
+/** Scroll du hero : pin + légère montée du texte et des pastilles sur desktop (la carte de l'avatar reste fixe), simple parallax des pastilles sur mobile. */
 export function HeroMotion({ children, className }: HeroMotionProps) {
   const root = useRef<HTMLElement>(null)
 
@@ -33,7 +32,6 @@ export function HeroMotion({ children, className }: HeroMotionProps) {
               anticipatePin: 1,
             },
           })
-          .to('[data-hero-frame]', { scale: FRAME_END_SCALE, ease: 'none' }, 0)
           .to(
             '[data-hero-chip]',
             { yPercent: CHIP_DESKTOP_LIFT, stagger: CHIP_STAGGER, ease: 'none' },
