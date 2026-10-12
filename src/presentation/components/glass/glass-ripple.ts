@@ -25,9 +25,11 @@ type Ripple = {
   seconds: number
   bump: Bump
   pressed: boolean
-  /** Petits verres seulement : une grande carte qui s'enfoncerait de 4 % bougerait de plusieurs dizaines de px. */
-  readonly bounce: boolean
 }
+
+// Le verre anime sa taille en CSS (survol, appui) : pendant l'onde, cette transition lisserait et retarderait le
+// ressort. On la retire le temps de l'onde, en gardant celles du décalage et de l'ombre.
+const TRANSITIONS_WITHOUT_SCALE = 'translate, box-shadow'
 
 /** Peint une seule fois la carte de l'onde dans le filtre (calculée ici plutôt que stockée en image). */
 function paintMap(): void {
@@ -46,14 +48,15 @@ const span = (className: string): HTMLElement => {
 }
 
 /** Couche de l'onde, glissée sous le texte du verre le temps de l'animation, puis retirée. */
-function createRipple(glass: HTMLElement, bounce: boolean): Ripple {
+function createRipple(glass: HTMLElement): Ripple {
   const layer = span('glass-ripple')
   const wave = span('glass-ripple__wave')
   const ring = span('glass-ripple__ring')
   layer.setAttribute('aria-hidden', 'true')
   layer.append(wave, ring)
   glass.append(layer)
-  return { layer, wave, ring, x: 0, y: 0, seconds: 0, bump: BUMP_REST, pressed: false, bounce }
+  glass.style.transitionProperty = TRANSITIONS_WITHOUT_SCALE
+  return { layer, wave, ring, x: 0, y: 0, seconds: 0, bump: BUMP_REST, pressed: false }
 }
 
 function draw(glass: HTMLElement, ripple: Ripple): number {
@@ -64,7 +67,7 @@ function draw(glass: HTMLElement, ripple: Ripple): number {
     circle.style.top = `${ripple.y - diameter / 2}px`
   }
   ripple.ring.style.opacity = ringOpacity.toFixed(3)
-  if (ripple.bounce) glass.style.scale = (1 + ripple.bump.offset).toFixed(4)
+  glass.style.scale = (1 + ripple.bump.offset).toFixed(4)
   return refraction
 }
 
@@ -92,10 +95,11 @@ function strike(glass: HTMLElement, ripple: Ripple, clientX: number, clientY: nu
 function remove(glass: HTMLElement, ripple: Ripple): void {
   ripple.layer.remove()
   glass.style.removeProperty('scale')
+  glass.style.removeProperty('transition-property')
 }
 
 export type RippleController = {
-  press: (glass: HTMLElement, clientX: number, clientY: number, bounce: boolean) => void
+  press: (glass: HTMLElement, clientX: number, clientY: number) => void
   release: () => void
   stop: () => void
 }
@@ -126,9 +130,9 @@ export function createRippleController(): RippleController {
   }
 
   return {
-    press(glass, clientX, clientY, bounce) {
+    press(glass, clientX, clientY) {
       paintMap()
-      const ripple = ripples.get(glass) ?? createRipple(glass, bounce)
+      const ripple = ripples.get(glass) ?? createRipple(glass)
       strike(glass, ripple, clientX, clientY)
       ripples.set(glass, ripple)
       if (!frame) {

@@ -49,24 +49,19 @@ describe('clic liquide : rebond', () => {
 })
 
 describe('clic liquide : onde', () => {
-  it('part du point touché et s’élargit en ralentissant, jusqu’à 2,6 fois la largeur', () => {
-    const start = waveAt(0, 100)
-    const early = waveAt(0.1, 100)
-    const late = waveAt(0.6, 100)
-    expect(start.diameter).toBe(0)
+  it('part du point touché et s’élargit en ralentissant, jusqu’à 2,6 fois la largeur du verre', () => {
+    const early = waveAt(0.1, 150)
+    const late = waveAt(0.6, 150)
+    expect(waveAt(0, 150).diameter).toBe(0)
     expect(early.diameter).toBeGreaterThan(0)
     expect(late.diameter - early.diameter).toBeLessThan(early.diameter * 3)
-    expect(waveAt(10, 100).diameter).toBeCloseTo(260)
-  })
-
-  it('sur une grande surface, garde la portée qu’elle a sur un bouton (largeur plafonnée à 240 px)', () => {
-    expect(waveAt(10, 900).diameter).toBeCloseTo(2.6 * 240)
-    expect(waveAt(0.2, 900).diameter).toBeCloseTo(waveAt(0.2, 240).diameter)
+    expect(waveAt(10, 150).diameter).toBeCloseTo(390)
+    expect(waveAt(10, 220).diameter).toBeCloseTo(572)
   })
 
   it('s’éteint : réfraction et lumière presque nulles quand on la retire', () => {
-    expect(waveAt(0, 100).ringOpacity).toBe(1)
-    const end = waveAt(WAVE_SECONDS, 100)
+    expect(waveAt(0, 150).ringOpacity).toBe(1)
+    const end = waveAt(WAVE_SECONDS, 150)
     expect(end.refraction).toBeLessThan(0.01)
     expect(end.ringOpacity).toBeLessThan(0.02)
   })
