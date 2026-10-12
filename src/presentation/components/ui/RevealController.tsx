@@ -55,7 +55,7 @@ function useRefreshOnResize(): void {
     const observer = new ResizeObserver(() => {
       window.clearTimeout(timer)
       timer = window.setTimeout(() => {
-        ScrollTrigger.sort() // ordre de la page : un épinglage plus haut décale bien les déclencheurs plus bas
+        ScrollTrigger.sort() // ordre de la page : les déclencheurs créés tard restent triés avant le recalcul
         ScrollTrigger.refresh()
       }, REFRESH_DEBOUNCE_MS)
     })

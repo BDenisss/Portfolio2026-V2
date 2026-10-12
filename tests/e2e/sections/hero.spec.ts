@@ -55,21 +55,17 @@ test.describe('hero', () => {
     }
   })
 
-  test('propose le téléchargement des deux CV dans un menu accessible', async ({ page }) => {
+  test('propose le téléchargement direct du CV Full Stack, et de lui seul', async ({ page }) => {
     await page.goto('/fr')
-    // Un clic arrivé avant l'hydratation de React serait perdu : on attend que la page ait fini de charger.
-    await page.waitForLoadState('networkidle')
-    const trigger = page.getByRole('button', { name: 'Télécharger mon CV' })
-    await expect(trigger).toHaveAttribute('aria-expanded', 'false')
-    await trigger.click()
-    await expect(trigger).toHaveAttribute('aria-expanded', 'true')
-    await expect(page.getByRole('link', { name: 'CV Full Stack (PDF)' })).toHaveAttribute(
-      'download',
-      '',
-    )
-    await expect(page.getByRole('link', { name: 'CV IA / GenAI (PDF)' })).toBeVisible()
-    await page.keyboard.press('Escape')
-    await expect(trigger).toHaveAttribute('aria-expanded', 'false')
-    await expect(trigger).toBeFocused()
+    const cv = page.getByRole('link', { name: 'Télécharger mon CV' })
+    await expect(cv).toHaveAttribute('download', '')
+    // Fichier servi par l'API, sans préfixe de langue (`/fr/api/…` serait une 404).
+    await expect(cv).toHaveAttribute('href', /^\/api\/media\/file\/[^/]+\.pdf$/)
+    const pdf = await page.request.get((await cv.getAttribute('href')) ?? '')
+    expect(pdf.headers()['content-type']).toContain('application/pdf')
+    // Un seul téléchargement dans le hero, et jamais le CV IA ; plus de menu.
+    await expect(page.locator('#hero a[download]')).toHaveCount(1)
+    await expect(page.locator('#hero a[href*="_IA"]')).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Télécharger mon CV' })).toHaveCount(0)
   })
 })

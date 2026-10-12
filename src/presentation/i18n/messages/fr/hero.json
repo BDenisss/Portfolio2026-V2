@@ -1,9 +1,7 @@
 {
   "avatarAlt": "Avatar Memoji 3D de Denis Bucspun, en veste sherpa crème, bras croisés",
   "ctaPrimary": "Voir mes projets",
-  "cvMenuLabel": "Télécharger mon CV",
-  "cvFullstack": "CV Full Stack (PDF)",
-  "cvAi": "CV IA / GenAI (PDF)",
+  "cvDownload": "Télécharger mon CV",
   "scrollHint": "Faire défiler",
   "titlesLabel": "Mes métiers :"
 }

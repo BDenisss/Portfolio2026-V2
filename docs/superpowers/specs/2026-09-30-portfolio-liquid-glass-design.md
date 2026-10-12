@@ -60,7 +60,7 @@ Tous les champs textuels marqués **L** sont localisés (`fr`/`en`, repli sur `f
 **`media`** — upload (images, PDF, vidéo, GLB), `alt` L (obligatoire pour les images), tailles `thumb/card/hero` (WebP/AVIF via sharp).
 **`users`** — auth admin ; inscription publique **fermée** (création réservée aux admins, sauf premier utilisateur).
 
-**Global `site`** (onglets) — *Identité* (nom, titre de poste L, accroche L, localisation) · *Hero* (eyebrow L, phrases rotatives L [], CTA L, chips L) · *À propos* (biographie L, stats [{valeur, libellé L}], `autoStats` bool) · *Méthode* (étapes [{titre L, texte L}]) · *Contact* (email, téléphone + `showPhone` **false par défaut**, LinkedIn, GitHub, localisation, `contactTo`) · *CV* (`cvFullstack` et `cvAi` : deux médias PDF, un par profil ; le bouton « Télécharger mon CV » ouvre un petit menu verre pour choisir le profil, libellés localisés) · *SEO* (titre, description L, image OG).
+**Global `site`** (onglets) — *Identité* (nom, titre de poste L, accroche L, localisation) · *Hero* (eyebrow L, phrases rotatives L [], CTA L, chips L) · *À propos* (biographie L, stats [{valeur, libellé L}], `autoStats` bool) · *Méthode* (étapes [{titre L, texte L}]) · *Contact* (email, téléphone + `showPhone` **false par défaut**, LinkedIn, GitHub, localisation, `contactTo`) · *CV* (`cvFullstack` et `cvAi` : deux médias PDF ; le bouton « Télécharger mon CV » télécharge directement le CV Full Stack, `cvAi` est conservé mais non affiché) · *SEO* (titre, description L, image OG).
 **Global `cinematic`** — slots médias (voir §7).
 
 **Contrôles d'accès :** lecture publique des documents publiés uniquement ; toute écriture = utilisateur authentifié. **Hooks `afterChange`/`afterDelete`** → `revalidatePath` des routes concernées (`/fr`, `/en`, `/[locale]/projects/[slug]`) : publier dans le CMS met le site à jour immédiatement.
@@ -71,7 +71,7 @@ Navigation : pilule verre flottante (desktop) → **dock bas ≤ 5 items** (< 76
 
 | # | Section | Contenu |
 |---|---|---|
-| 1 | **Hero** | Eyebrow « Bonjour, je suis », **Denis Bucspun**, titre rotatif (*Développeur Full Stack* / *Ingénieur IA · GenAI*), accroche, CTA « Voir mes projets » + « Télécharger mon CV » (FR/IA), chips flottantes verre (« 3 ans d'alternance », « .NET · React · IA »), bande **« Ils m'ont fait confiance »** en texte : Bouygues Telecom Business Solutions, Axima Concept, Ville de Clamart |
+| 1 | **Hero** | Eyebrow « Bonjour, je suis », **Denis Bucspun**, titre rotatif (*Développeur Full Stack* / *Ingénieur IA · GenAI*), accroche, CTA « Voir mes projets » + « Télécharger mon CV » (CV Full Stack, téléchargement direct), chips flottantes verre (« 3 ans d'alternance », « .NET · React · IA »), bande **« Ils m'ont fait confiance »** en texte : Bouygues Telecom Business Solutions, Axima Concept, Ville de Clamart |
 | 2 | **À propos** | Bio issue du profil CV + 3–4 stats (ans d'alternance, expériences, technologies, projets — les deux derniers **calculés depuis le CMS**) |
 | 3 | **Services** | 4 cartes : **Développement Full Stack** (web & mobile, React/Next/React Native + API .NET) · **Architecture & qualité** (Clean Architecture, DDD, hexagonale, tests xUnit/NSubstitute) · **IA générative & agents** (LLM, multi-agents, MCP, RAG, tool calling) · **Cloud, DevOps & sécurité** (Docker, Azure, CI/CD, OAuth 2.0/PKCE, Entra ID) |
 | 4 | **Stack** | Tuiles verre groupées par catégorie, icônes Simple Icons |

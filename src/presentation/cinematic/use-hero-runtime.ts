@@ -58,8 +58,8 @@ export function useInView(ref: RefObject<Element | null>): boolean {
   useEffect(() => {
     const element = ref.current
     if (!element) return
-    // Les entrées d'un lot sont chronologiques : la dernière fait foi (GSAP déplace le nœud dans son pin-spacer,
-    // ce qui peut livrer une entrée « hors écran » périmée juste avant l'entrée réelle).
+    // Les entrées d'un lot sont chronologiques : la dernière fait foi (un nœud déplacé dans le DOM peut livrer
+    // une entrée « hors écran » périmée juste avant l'entrée réelle).
     const observer = new IntersectionObserver((entries) =>
       setInView(Boolean(entries.at(-1)?.isIntersecting)),
     )

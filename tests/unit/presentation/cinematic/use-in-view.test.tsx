@@ -36,7 +36,7 @@ describe('useInView', () => {
   })
 
   it('retient la dernière entrée d’un lot : une entrée périmée ne doit pas l’emporter', () => {
-    // GSAP déplace la section dans son pin-spacer : l'observateur reçoit « hors écran » puis « à l'écran » dans le même lot.
+    // Un nœud déplacé dans le DOM : l'observateur reçoit « hors écran » puis « à l'écran » dans le même lot.
     const { result } = renderHook(() => useInView(mountedRef()))
     act(() => deliver([{ isIntersecting: false }, { isIntersecting: true }]))
     expect(result.current).toBe(true)

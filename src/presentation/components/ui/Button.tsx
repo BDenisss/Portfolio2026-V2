@@ -34,8 +34,13 @@ const PRIMARY = 'bg-[var(--ink)] text-white hover:shadow-[0_10px_30px_rgb(11_11_
 
 const isLinkProps = (props: ButtonProps): props is LinkProps => props.href !== undefined
 
-/** Les chemins internes passent par le `Link` localisé ; ancres (`#x`) et URLs externes restent des <a>. */
-const isInternalPath = (href: string): boolean => href.startsWith('/')
+/**
+ * Les pages du site passent par le `Link` localisé (qui préfixe la langue) ; ancres (`#x`), URLs externes,
+ * fichiers servis par l'API (`/api/…`, comme les CV) et téléchargements restent des <a> : préfixés, ils
+ * donneraient `/fr/api/…`, une 404.
+ */
+const isLocalizedPage = (href: string, download: unknown): boolean =>
+  href.startsWith('/') && !href.startsWith('/api/') && download === undefined
 
 type Surface = { classes: string; glass: ReturnType<typeof glassAttributes> | null }
 
@@ -52,7 +57,7 @@ function renderLink(props: LinkProps, { classes, glass }: Surface) {
   const { href, variant, size, icon, magnetic, className, children, ...anchor } = props
   const attributes = { ...anchor, ...glass, className: glass?.className ?? classes }
   const content = <Content icon={icon}>{children}</Content>
-  if (isInternalPath(href)) {
+  if (isLocalizedPage(href, anchor.download)) {
     return (
       <Link href={href} {...attributes}>
         {content}

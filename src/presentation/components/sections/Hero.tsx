@@ -2,13 +2,11 @@ import { useTranslations } from 'next-intl'
 import type { CinematicMedia, LabeledValue, SiteProfile } from '@/domain'
 import { HeroChoreographyProvider } from '@/presentation/cinematic/hero-choreography-context'
 import { GlassOrb } from '@/presentation/components/cinematic/GlassOrb'
-import { HeroMotion } from '@/presentation/components/cinematic/HeroMotion'
 import { HeroStage } from '@/presentation/components/cinematic/HeroStage'
 import { Glass } from '@/presentation/components/glass/Glass'
 import { Button } from '@/presentation/components/ui/Button'
 import { Eyebrow } from '@/presentation/components/ui/Eyebrow'
 import { Reveal } from '@/presentation/components/ui/Reveal'
-import { CvMenu } from './hero/CvMenu'
 import { RotatingTitle } from './hero/RotatingTitle'
 import { TrustedBy } from './hero/TrustedBy'
 
@@ -19,7 +17,6 @@ function HeroChip({ chip, position }: { chip: LabeledValue; position: string }) 
     <Glass
       variant="card"
       data-testid="hero-chip"
-      data-hero-chip
       className={`absolute z-10 flex flex-col px-4 py-3 ${position}`}
     >
       <span className="font-display text-2xl leading-none font-semibold text-[var(--ink)]">
@@ -41,9 +38,14 @@ export function Hero({ site, cinematic }: HeroProps) {
   )
   return (
     <HeroChoreographyProvider>
-      <HeroMotion className="relative overflow-x-clip">
+      <section
+        id="hero"
+        data-section="hero"
+        aria-labelledby="hero-title"
+        className="relative overflow-x-clip"
+      >
         <div className="container-x grid min-h-[100svh] items-center gap-10 pt-28 pb-12 lg:grid-cols-12 lg:pt-24">
-          <div data-hero-copy className="space-y-6 lg:col-span-7">
+          <div className="space-y-6 lg:col-span-7">
             <Eyebrow data-split="chars">{hero.eyebrow}</Eyebrow>
             <h1
               id="hero-title"
@@ -66,13 +68,12 @@ export function Hero({ site, cinematic }: HeroProps) {
               <Button size="lg" magnetic href="#projects" icon="arrow-up-right">
                 {hero.ctaPrimary || t('ctaPrimary')}
               </Button>
-              <CvMenu
-                fullstack={site.cv.fullstack}
-                ai={site.cv.ai}
-                label={hero.ctaSecondary || t('cvMenuLabel')}
-                fullstackLabel={t('cvFullstack')}
-                aiLabel={t('cvAi')}
-              />
+              {/* Un seul CV proposé, le Full Stack : un clic le télécharge directement. */}
+              {site.cv.fullstack && (
+                <Button variant="secondary" icon="download" href={site.cv.fullstack.url} download>
+                  {hero.ctaSecondary || t('cvDownload')}
+                </Button>
+              )}
             </Reveal>
             <Reveal>
               <TrustedBy title={hero.trustedByTitle} items={hero.trustedBy} />
@@ -90,7 +91,7 @@ export function Hero({ site, cinematic }: HeroProps) {
             ))}
           </div>
         </div>
-      </HeroMotion>
+      </section>
     </HeroChoreographyProvider>
   )
 }

@@ -70,14 +70,14 @@ La case `featured` existe mais n'a pas d'effet visible sur le site pour l'instan
 | À propos | titre, biographie, chiffres |
 | Méthode | titre et étapes de la section Méthode |
 | Contact | e-mail, téléphone, LinkedIn, GitHub, destinataire des messages |
-| CV | les deux CV en PDF |
+| CV | le CV Full Stack en PDF (seul affiché sur le site) |
 | SEO | titre, description et image de partage (Open Graph) |
 
 **Chiffres de la section À propos.** Avec `autoStats` coché (par défaut), le site calcule seul : les années d'expérience (depuis le début de la plus ancienne entrée de type Expérience), le nombre d'expériences, le nombre de technologies et le nombre de projets publiés. Décoche `autoStats` pour saisir tes propres chiffres (valeur et libellé par langue).
 
 **Téléphone.** Le champ `phone` est enregistré mais **n'est affiché publiquement que si `showPhone` est coché**. Il est décoché par défaut : l'affichage d'un numéro attire le démarchage. Le téléphone et l'e-mail ne figurent jamais dans les données structurées pour les moteurs de recherche.
 
-**CV.** `cvFullstack` et `cvAi` acceptent un PDF chacun. Avec les deux, le bouton « Télécharger mon CV » du hero ouvre un petit menu pour choisir le profil ; avec un seul, il télécharge directement ce PDF ; sans PDF, le bouton n'apparaît pas. **Un CV téléversé est téléchargeable par tout le monde** : vérifie qu'il ne contient que ce que tu veux publier (les PDF d'origine contiennent un numéro de téléphone).
+**CV.** Le bouton « Télécharger mon CV » du hero télécharge directement le PDF de `cvFullstack` ; sans ce PDF, le bouton n'apparaît pas. Le champ `cvAi` est conservé dans le CMS mais **n'est plus affiché** sur le site : inutile d'y téléverser un fichier (il serait public sans être relié à rien). **Un CV téléversé est téléchargeable par tout le monde** : vérifie qu'il ne contient que ce que tu veux publier (les PDF d'origine contiennent un numéro de téléphone).
 
 ## Médias
 

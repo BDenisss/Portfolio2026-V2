@@ -8,6 +8,24 @@ describe('<Button>', () => {
     render(<Button href="#x">Go</Button>)
     expect(screen.getByRole('link', { name: 'Go' })).toHaveAttribute('href', '#x')
   })
+  it('ne préfixe jamais la langue devant un fichier de l’API ni un téléchargement', () => {
+    render(
+      <>
+        <Button href="/api/media/file/cv.pdf" download>
+          CV
+        </Button>
+        <Button href="/api/media/file/doc.pdf">Doc</Button>
+      </>,
+    )
+    expect(screen.getByRole('link', { name: 'CV' })).toHaveAttribute(
+      'href',
+      '/api/media/file/cv.pdf',
+    )
+    expect(screen.getByRole('link', { name: 'Doc' })).toHaveAttribute(
+      'href',
+      '/api/media/file/doc.pdf',
+    )
+  })
   it('rend un <button type=button> sans href', () => {
     render(<Button>Go</Button>)
     expect(screen.getByRole('button', { name: 'Go' })).toHaveAttribute('type', 'button')
