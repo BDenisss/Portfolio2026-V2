@@ -5,7 +5,9 @@ const REDUCED_TRANSPARENCY = '(prefers-reduced-transparency: reduce)'
 const NO_BACKDROP = 'none'
 const BLUR = /blur\(/
 const OPAQUE_ALPHA = 1
-const COLOR_CHANNELS = /^rgba?\(([^)]*)\)$/
+// `rgb(…)`, ou `color(srgb …)` pour une teinte calculée par color-mix() (le verre liquide).
+const COLOR_CHANNELS = /^(?:rgba?|color)\(([^)]*)\)$/
+const COLOR_SPACE = /^[a-z-]+$/
 const CHANNEL_SEPARATOR = /[\s,/]+/
 const ALPHA_INDEX = 3
 const CHROMIUM = 'chromium'
@@ -15,7 +17,9 @@ type GlassMaterial = { readonly label: string; readonly backdrop: string; readon
 
 /** Alpha d'une couleur calculée (`rgb(…)` = opaque) ; NaN si le format est inattendu, pour échouer bruyamment. */
 function alphaOf(color: string): number {
-  const channels = COLOR_CHANNELS.exec(color)?.[1]?.split(CHANNEL_SEPARATOR).filter(Boolean)
+  const channels = COLOR_CHANNELS.exec(color)?.[1]
+    ?.split(CHANNEL_SEPARATOR)
+    .filter((channel) => channel && !COLOR_SPACE.test(channel))
   if (!channels) return Number.NaN
   return Number(channels[ALPHA_INDEX] ?? OPAQUE_ALPHA)
 }

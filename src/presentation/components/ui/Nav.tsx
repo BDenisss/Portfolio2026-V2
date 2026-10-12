@@ -1,6 +1,7 @@
 'use client'
 import { useTranslations } from 'next-intl'
 import { Glass } from '@/presentation/components/glass/Glass'
+import { GlassIndicator } from '@/presentation/components/glass/GlassIndicator'
 import { Link } from '@/presentation/i18n/navigation'
 import { cn } from '@/presentation/lib/cn'
 import { Button } from './Button'
@@ -27,7 +28,6 @@ export function Nav({ name, jobTitle }: { name: string; jobTitle: string }) {
     <Glass
       as="nav"
       variant="pill"
-      refract
       aria-label={t('label')}
       data-testid="nav"
       className="fixed inset-x-3 top-3 z-50 flex items-center justify-between gap-2 py-2 pr-2 pl-3 md:inset-x-6 md:top-4"
@@ -44,24 +44,28 @@ export function Nav({ name, jobTitle }: { name: string; jobTitle: string }) {
           <span className="hidden text-xs text-[var(--ink-muted)] xl:block">{jobTitle}</span>
         </span>
       </Link>
-      <ul className="hidden items-center gap-1 md:flex">
-        {NAV_ITEMS.map(({ id }) => (
-          <li key={id}>
-            <SectionLink
-              href={hrefFor(id)}
-              aria-current={active === id ? 'location' : undefined}
-              className={cn(
-                'flex min-h-11 items-center rounded-full px-3 text-sm font-medium whitespace-nowrap transition-colors duration-200 lg:px-4',
-                active === id
-                  ? 'bg-white text-[var(--ink)] shadow-sm'
-                  : 'text-[var(--ink-muted)] hover:text-[var(--ink)]',
-              )}
-            >
-              {t(`items.${id}`)}
-            </SectionLink>
-          </li>
-        ))}
-      </ul>
+      <div className="relative hidden md:block">
+        <GlassIndicator activeKey={active} />
+        <ul className="flex items-center gap-1">
+          {NAV_ITEMS.map(({ id }) => (
+            <li key={id}>
+              <SectionLink
+                href={hrefFor(id)}
+                data-indicator-key={id}
+                aria-current={active === id ? 'location' : undefined}
+                className={cn(
+                  'relative flex min-h-11 items-center rounded-full px-3 text-sm font-medium whitespace-nowrap transition-colors duration-200 lg:px-4',
+                  active === id
+                    ? 'text-[var(--ink)]'
+                    : 'text-[var(--ink-muted)] hover:text-[var(--accent-text)]',
+                )}
+              >
+                {t(`items.${id}`)}
+              </SectionLink>
+            </li>
+          ))}
+        </ul>
+      </div>
       <div className="flex items-center gap-2">
         <LangSwitch />
         <div className="hidden xl:block">

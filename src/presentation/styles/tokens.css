@@ -23,6 +23,14 @@
   --glass-blur: 8px;
   --glass-border: rgb(255 255 255 / 0.7);
   --glass-hairline: rgb(120 110 170 / 0.18);
+  /* Verre liquide (pen « Liquid glass » de Den Dionigi) : teinte, reflets clair/sombre et saturation du flou. */
+  --lg-tint: #bbbbbc;
+  --lg-tint-amount: 12%;
+  --lg-light: #ffffff;
+  --lg-dark: #000000;
+  --lg-reflex-light: 1;
+  --lg-reflex-dark: 1;
+  --lg-saturation: 150%;
   --shadow-glass: 0 8px 32px rgb(70 50 140 / 0.1), 0 1px 2px rgb(70 50 140 / 0.06);
 
   --space-xs: 0.25rem;

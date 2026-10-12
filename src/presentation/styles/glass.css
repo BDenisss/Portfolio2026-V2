@@ -1,17 +1,62 @@
 /*
- * Matériau « Liquid Glass » en 3 couches, sans changer le HTML des composants :
- *   .glass            le contenu (aucun fond propre) et l'ombre portée ;
- *   .glass::before    la lentille : flou du décor + réfraction SVG (Chromium) ;
- *   .glass::after     le voile blanc translucide et le reflet spéculaire (liseré lumineux en haut à gauche).
+ * Matériau « Liquid Glass » (d'après le pen « Liquid glass » de Den Dionigi), sans changer le HTML des composants :
+ *   .glass            le contenu (aucun fond propre) ;
+ *   .glass::before    la lentille : flou saturé du décor, + réfraction liquide sur les pilules (Chromium) ;
+ *   .glass::after     la teinte grise à 12 % et le biseau : reflets clairs en haut à gauche, sombres en bas,
+ *                     puis deux ombres portées douces.
+ * La lentille est un pseudo-élément (et non le bloc lui-même) : un verre posé dans un autre verre (FR/EN dans la nav)
+ * continue de voir la page derrière lui.
  * Couche `components` : les utilitaires Tailwind (couche `utilities`) doivent pouvoir surcharger le verre.
  */
 @layer components {
+  :root {
+    /* Biseau d'une grande surface (pilule de nav, carte). */
+    --lg-bevel:
+      inset 0 0 0 1px
+        color-mix(in srgb, var(--lg-light) calc(var(--lg-reflex-light) * 10%), transparent),
+      inset 1.8px 3px 0px -2px
+        color-mix(in srgb, var(--lg-light) calc(var(--lg-reflex-light) * 90%), transparent),
+      inset -2px -2px 0px -2px
+        color-mix(in srgb, var(--lg-light) calc(var(--lg-reflex-light) * 80%), transparent),
+      inset -3px -8px 1px -6px
+        color-mix(in srgb, var(--lg-light) calc(var(--lg-reflex-light) * 60%), transparent),
+      inset -0.3px -1px 4px 0px
+        color-mix(in srgb, var(--lg-dark) calc(var(--lg-reflex-dark) * 12%), transparent),
+      inset -1.5px 2.5px 0px -2px
+        color-mix(in srgb, var(--lg-dark) calc(var(--lg-reflex-dark) * 20%), transparent),
+      inset 0px 3px 4px -2px
+        color-mix(in srgb, var(--lg-dark) calc(var(--lg-reflex-dark) * 20%), transparent),
+      inset 2px -6.5px 1px -4px
+        color-mix(in srgb, var(--lg-dark) calc(var(--lg-reflex-dark) * 10%), transparent);
+    --lg-drop:
+      0px 1px 5px 0px
+        color-mix(in srgb, var(--lg-dark) calc(var(--lg-reflex-dark) * 10%), transparent),
+      0px 6px 16px 0px
+        color-mix(in srgb, var(--lg-dark) calc(var(--lg-reflex-dark) * 8%), transparent);
+    /* Biseau de la pastille mobile (l'élément sélectionné). */
+    --lg-bevel-sm:
+      inset 0 0 0 1px
+        color-mix(in srgb, var(--lg-light) calc(var(--lg-reflex-light) * 10%), transparent),
+      inset 2px 1px 0px -1px
+        color-mix(in srgb, var(--lg-light) calc(var(--lg-reflex-light) * 90%), transparent),
+      inset -1.5px -1px 0px -1px
+        color-mix(in srgb, var(--lg-light) calc(var(--lg-reflex-light) * 80%), transparent),
+      inset -2px -6px 1px -5px
+        color-mix(in srgb, var(--lg-light) calc(var(--lg-reflex-light) * 60%), transparent),
+      inset -1px 2px 3px -1px
+        color-mix(in srgb, var(--lg-dark) calc(var(--lg-reflex-dark) * 20%), transparent),
+      inset 0px -4px 1px -2px
+        color-mix(in srgb, var(--lg-dark) calc(var(--lg-reflex-dark) * 10%), transparent);
+    --lg-drop-sm: 0px 3px 6px 0px
+      color-mix(in srgb, var(--lg-dark) calc(var(--lg-reflex-dark) * 8%), transparent);
+    --lg-ease: cubic-bezier(1, 0, 0.4, 1);
+  }
+
   .glass {
     position: relative;
     isolation: isolate;
     background: transparent;
     border-radius: var(--radius-card);
-    box-shadow: var(--shadow-glass);
     transition:
       transform 220ms var(--ease-glass),
       box-shadow 220ms var(--ease-glass);
@@ -26,17 +71,16 @@
   }
   .glass::before {
     z-index: -2;
-    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%) brightness(1.08);
-    backdrop-filter: blur(var(--glass-blur)) saturate(150%) brightness(1.08);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--lg-saturation));
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--lg-saturation));
   }
   .glass::after {
     z-index: -1;
-    background:
-      linear-gradient(135deg, rgb(255 255 255 / 0.4) 0%, transparent 38%), var(--glass-fill);
-    box-shadow:
-      inset 1px 1px 0 var(--glass-highlight),
-      inset 0 0 5px var(--glass-highlight),
-      inset -1px -1px 0 rgb(255 255 255 / 0.3);
+    background-color: color-mix(in srgb, var(--lg-tint) var(--lg-tint-amount), transparent);
+    box-shadow: var(--lg-bevel), var(--lg-drop);
+    transition:
+      background-color 400ms var(--lg-ease),
+      box-shadow 400ms var(--lg-ease);
   }
   .glass--surface {
     border-radius: var(--radius-frame);
@@ -48,49 +92,81 @@
   .glass--dock {
     border-radius: var(--radius-pill);
   }
-  .glass--pill::after,
-  .glass--dock::after {
-    background:
-      linear-gradient(135deg, rgb(255 255 255 / 0.4) 0%, transparent 38%), var(--glass-fill-strong);
-  }
-  /* Simple liseré lumineux, sans flou ni voile : à poser sur un média (cadre de l'avatar). */
+  /* Simple biseau lumineux, sans flou ni teinte : à poser sur un média (cadre de l'avatar). */
   .glass--rim::before {
     display: none;
   }
   .glass--rim::after {
     background: none;
-  }
-  .glass--rim {
-    box-shadow: none;
+    box-shadow: var(--lg-bevel);
   }
   .glass[data-interactive] {
     cursor: pointer;
   }
   .glass[data-interactive]:hover {
     transform: translateY(-2px);
-    box-shadow: 0 14px 40px rgb(70 50 140 / 0.18);
+    box-shadow: 0 14px 40px rgb(0 0 0 / 0.1);
   }
   .glass[data-interactive]:active {
     transform: scale(0.985);
   }
 
-  /* Réfraction SVG sur la lentille seulement (jamais sur le contenu) : Chromium, jamais requise (drapeau posé par <RefractionFlag/>) */
+  /*
+   * Réfraction liquide (Chromium seulement, drapeau posé par <RefractionFlag/>). Avec `url()`, Chrome ne floute plus :
+   * il déforme un fond net (lentille claire). Lisible sur une petite pastille, pas sous les libellés d'une barre :
+   * les barres restent dépolies, et c'est la pastille de sélection, posée sous le libellé actif, qui sert de lentille.
+   */
   html[data-refract='on'] .glass[data-refract]::before {
-    filter: url(#lg-refract) saturate(120%) brightness(1.15);
+    backdrop-filter: blur(var(--glass-blur)) url(#lg-liquid) saturate(var(--lg-saturation));
   }
 
-  /* Repli opaque. La réfraction est reprise ici : son sélecteur, plus spécifique, garderait sinon flou et lentille. */
+  /*
+   * Pastille de sélection (nav, dock, langue) : un verre plus dense qui glisse vers l'élément actif et s'étire
+   * dans le sens du mouvement (voir GlassIndicator.tsx, qui la place et lance l'étirement).
+   */
+  .glass-indicator {
+    position: absolute;
+    top: var(--indicator-y, 0px);
+    left: 0;
+    width: var(--indicator-w, 0px);
+    height: var(--indicator-h, 100%);
+    translate: var(--indicator-x, 0px) 0;
+    border-radius: var(--radius-pill);
+    background-color: color-mix(in srgb, var(--lg-tint) 36%, transparent);
+    box-shadow: var(--lg-bevel-sm), var(--lg-drop-sm);
+    pointer-events: none;
+    opacity: 0;
+  }
+  .glass-indicator[data-visible] {
+    opacity: 1;
+  }
+  html[data-refract='on'] .glass-indicator {
+    backdrop-filter: url(#lg-liquid) saturate(var(--lg-saturation));
+  }
+  .glass-indicator[data-ready] {
+    transition:
+      translate 400ms var(--lg-ease),
+      width 400ms var(--lg-ease),
+      top 400ms var(--lg-ease),
+      height 400ms var(--lg-ease),
+      opacity 200ms ease;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .glass-indicator[data-ready] {
+      transition: none;
+    }
+  }
+
+  /* Repli opaque : ni flou ni réfraction, teinte remplacée par un fond plein. */
   @media (prefers-reduced-transparency: reduce) {
     .glass::before,
-    html[data-refract='on'] .glass[data-refract]::before {
+    html[data-refract='on'] .glass[data-refract]::before,
+    html[data-refract='on'] .glass-indicator {
       -webkit-backdrop-filter: none;
       backdrop-filter: none;
-      filter: none;
     }
-    .glass::after,
-    .glass--pill::after,
-    .glass--dock::after {
-      background: var(--opaque-glass);
+    .glass::after {
+      background-color: var(--opaque-glass);
     }
     .glass--rim::after {
       background: none;
@@ -98,7 +174,7 @@
   }
   @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
     .glass::after {
-      background: var(--opaque-glass);
+      background-color: var(--opaque-glass);
     }
     .glass--rim::after {
       background: none;

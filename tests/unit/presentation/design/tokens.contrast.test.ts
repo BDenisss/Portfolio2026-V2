@@ -17,6 +17,10 @@ const glassSubtle = composite('#FFFFFF', alphaOf('glass-fill-subtle'), t.bg!)
 // Pire fond du dégradé de page, échantillonné sous le texte rendu (revue T19, F3) : plus sombre que --bg.
 const gradientWorst = '#D3D2F6'
 const glassOnWorst = composite('#FFFFFF', alphaOf('glass-fill'), gradientWorst)
+// Verre liquide : teinte grise (--lg-tint) à --lg-tint-amount, sans voile blanc, sur le fond et sur le pire dégradé.
+const tintAmount = Number(/--lg-tint-amount:\s*([\d.]+)%/.exec(css)?.[1]) / 100
+const liquidGlass = composite(t['lg-tint']!, tintAmount, t.bg!)
+const liquidGlassOnWorst = composite(t['lg-tint']!, tintAmount, gradientWorst)
 
 const TEXT: Array<[string, string, string]> = [
   ['ink', 'bg', t.bg!],
@@ -34,6 +38,12 @@ const TEXT: Array<[string, string, string]> = [
   ['ink-muted', 'gradient-worst', gradientWorst],
   ['accent-text', 'glass-on-worst', glassOnWorst],
   ['ink-muted', 'glass-on-worst', glassOnWorst],
+  ['ink', 'liquid-glass-on-worst', liquidGlassOnWorst],
+  ['ink-2', 'liquid-glass', liquidGlass],
+  ['ink-2', 'liquid-glass-on-worst', liquidGlassOnWorst],
+  ['ink-muted', 'liquid-glass', liquidGlass],
+  ['ink-muted', 'liquid-glass-on-worst', liquidGlassOnWorst],
+  ['accent-text', 'liquid-glass-on-worst', liquidGlassOnWorst],
   ['danger', 'glass', glass],
   ['success', 'glass', glass],
 ]

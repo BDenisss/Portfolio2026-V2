@@ -1,6 +1,7 @@
 'use client'
 import { useTranslations } from 'next-intl'
 import { Glass } from '@/presentation/components/glass/Glass'
+import { GlassIndicator } from '@/presentation/components/glass/GlassIndicator'
 import { cn } from '@/presentation/lib/cn'
 import { UiIcon } from './Icon'
 import { DOCK_ITEMS } from './nav-items'
@@ -21,14 +22,16 @@ export function Dock() {
       data-testid="dock"
       className="fixed inset-x-3 bottom-3 z-50 flex items-center justify-between gap-2 px-2 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:hidden"
     >
+      <GlassIndicator activeKey={active} />
       {DOCK_ITEMS.map(({ id, icon }) => (
         <SectionLink
           key={id}
           href={hrefFor(id)}
+          data-indicator-key={id}
           aria-current={active === id ? 'location' : undefined}
           className={cn(
-            'flex min-h-11 min-w-11 flex-1 flex-col items-center justify-center gap-0.5 rounded-full px-1 py-1 transition-colors duration-200',
-            active === id ? 'bg-white text-[var(--ink)] shadow-sm' : 'text-[var(--ink-muted)]',
+            'relative flex min-h-11 min-w-11 flex-1 flex-col items-center justify-center gap-0.5 rounded-full px-1 py-1 transition-colors duration-200',
+            active === id ? 'text-[var(--ink)]' : 'text-[var(--ink-muted)]',
           )}
         >
           <UiIcon name={icon} className="size-5" />
