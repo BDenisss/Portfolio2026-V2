@@ -2,6 +2,7 @@
 @import './tokens.css';
 @import './glass.css';
 @import './decor.css';
+@import './holo.css';
 
 @theme inline {
   --color-bg: var(--bg);
