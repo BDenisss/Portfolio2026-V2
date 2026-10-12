@@ -57,17 +57,18 @@ function Highlights({ items, detailsLabel }: { items: readonly string[]; details
 export function TimelineItem({ experience, locale, labels, isLatest }: TimelineItemProps) {
   const { kind, role, organization, location, start, end, summary, highlights, stacks } = experience
   const range = formatRange(start, end, locale, labels.present)
-  // Seule la carte (et sa date) glisse depuis la droite : le rail et la pastille restent fixes pour garder la ligne continue.
+  // La carte (et sa date) glisse depuis la droite ; le rail se trace au scroll et la pastille apparaît quand il l'atteint.
   return (
-    <li
-      className={cn(
-        'relative pb-8 pl-10 last:pb-0 lg:pl-[12.5rem]',
-        // Rail : un segment par item, prolongé jusqu'au point de l'item suivant (-bottom-7 = son top-7), sans coupure.
-        'before:absolute before:top-7 before:-bottom-7 before:left-[0.6875rem] before:w-px before:bg-[var(--glass-hairline)] last:before:bottom-auto last:before:h-4 lg:before:left-[calc(10rem+1.25rem)]',
-      )}
-    >
+    <li className="group/item relative pb-8 pl-10 last:pb-0 lg:pl-[12.5rem]">
+      {/* Rail : un segment par item, prolongé jusqu'au point de l'item suivant (-bottom-7 = son top-7), sans coupure. */}
       <span
         aria-hidden="true"
+        data-draw="line"
+        className="absolute top-7 -bottom-7 left-[0.6875rem] w-px origin-top bg-[var(--glass-hairline)] group-last/item:bottom-auto group-last/item:h-4 lg:left-[calc(10rem+1.25rem)]"
+      />
+      <span
+        aria-hidden="true"
+        data-draw="dot"
         className={cn(
           'absolute top-7 left-1 size-[0.875rem] rounded-full border-2 border-white',
           isLatest ? 'bg-[var(--accent-strong)]' : 'bg-[var(--accent-soft)]',

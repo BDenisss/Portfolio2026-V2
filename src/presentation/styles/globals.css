@@ -169,9 +169,18 @@
   .js .reveal[data-reveal='right'] {
     transform: translateX(min(45vw, 28rem));
   }
+  /* Rail du parcours : non tracé, pastilles absentes, jusqu'à ce que le scroll les dessine (RevealController). */
+  .js [data-draw='line'] {
+    transform: scaleY(0);
+  }
+  .js [data-draw='dot'] {
+    opacity: 0;
+    transform: scale(0);
+  }
   @media (prefers-reduced-motion: reduce) {
     .js .reveal,
-    .js .reveal[data-reveal='right'] {
+    .js .reveal[data-reveal='right'],
+    .js [data-draw] {
       opacity: 1;
       transform: none;
     }

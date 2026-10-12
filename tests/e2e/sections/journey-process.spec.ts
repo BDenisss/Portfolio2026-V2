@@ -24,6 +24,39 @@ test('Parcours : détails repliables au clavier', async ({ page }) => {
   await expect(first.locator('details')).toHaveAttribute('open', '')
 })
 
+const DRAWN = /^(none|matrix\(1, 0, 0, 1, 0, 0\))$/
+
+test('Parcours : le rail se trace au scroll et chaque pastille apparaît quand il l’atteint', async ({
+  page,
+}) => {
+  await page.goto('/fr')
+  await page.waitForLoadState('networkidle')
+  const firstDot = page.locator('#journey [data-draw="dot"]').first()
+  const lastLine = page.locator('#journey [data-draw="line"]').last()
+  // Avant d'arriver au parcours : rien n'est tracé d'avance.
+  await expect(firstDot).toHaveCSS('opacity', '0')
+  await expect(lastLine).not.toHaveCSS('transform', DRAWN)
+  // Le bas du parcours a dépassé le haut de l'écran : toute la ligne est tracée, les pastilles sont là.
+  await page
+    .locator('#journey')
+    .evaluate((section) => window.scrollTo(0, section.getBoundingClientRect().bottom + scrollY))
+  await expect(firstDot).toHaveCSS('opacity', '1')
+  await expect(lastLine).toHaveCSS('transform', DRAWN)
+})
+
+test('Parcours reduced-motion : rail et pastilles visibles d’emblée', async ({ browser }) => {
+  const context = await browser.newContext({ reducedMotion: 'reduce' })
+  const page = await context.newPage()
+  await page.goto('/fr')
+  const drawn = page.locator('#journey [data-draw]')
+  expect(await drawn.count()).toBeGreaterThan(0)
+  for (const element of await drawn.all()) {
+    await expect(element).toHaveCSS('opacity', '1')
+    await expect(element).toHaveCSS('transform', 'none')
+  }
+  await context.close()
+})
+
 test('Parcours EN : libellés traduits', async ({ page }) => {
   await page.goto('/en')
   await expect(page.locator('#journey h2')).toHaveText('My journey')
