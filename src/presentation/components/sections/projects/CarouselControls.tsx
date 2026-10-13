@@ -40,7 +40,7 @@ export function CarouselControls(props: CarouselControlsProps) {
             aria-label={t('slideLabel', { current: index + 1, total: projects.length })}
             aria-current={index === active}
             onClick={() => onGoTo(index)}
-            className="grid size-6 cursor-pointer place-items-center"
+            className="grid h-11 min-w-6 cursor-pointer place-items-center"
           >
             <span
               className={cn(
