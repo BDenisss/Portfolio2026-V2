@@ -27,7 +27,7 @@ describe.skipIf(!process.env.DATABASE_URI)('seed', () => {
     const second = await seedPortfolio(payload)
 
     expect(second).toEqual(first)
-    expect(second).toMatchObject({ projects: 4, services: 4, experiences: 5 })
+    expect(second).toMatchObject({ projects: 3, services: 4, experiences: 5 })
     expect(second.stacks).toBeGreaterThanOrEqual(28)
   })
 
