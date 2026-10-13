@@ -18,7 +18,9 @@ async function pointAt(page: Page, glass: Locator, ratioX: number, ratioY: numbe
 
 test('verre vivant : les petits éléments s’étirent vers la souris, les grandes cartes n’ont que le reflet', async ({
   page,
+  isMobile,
 }) => {
+  test.skip(isMobile, 'au doigt, il n’y a pas de survol : seul le clic liquide reste')
   await page.goto('/fr')
   await page.waitForLoadState('networkidle')
   const stat = page.getByTestId('stat-card').first()
